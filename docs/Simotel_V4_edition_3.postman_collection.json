@@ -1,0 +1,2536 @@
+{
+	"info": {
+		"_postman_id": "e11ffbd9-5d0f-41c8-a77f-ad9a1c26ee1f",
+		"name": "Simotel V4",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "16353784"
+	},
+	"item": [
+		{
+			"name": "pbx/users/add",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"type": "text",
+						"value": "{{api_key}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\"user_type\":\"SIP\",\r\n\"active\":\"yes\",\r\n\"name\":\"Test User\",\r\n\"number\":\"999999\",\r\n\"cid_number\":\"999999\",\r\n\"secret\":\"999999\",\r\n\"call_record\":\"no\",\r\n\"push_notification\":\"no\",\r\n\"deny\":\"0.0.0.0/0.0.0.0\",\r\n\"permit\":\"0.0.0.0/0.0.0.0\",\r\n\"dtmfmode\":\"rfc2833\",\r\n\"canreinvite\":\"no\",\r\n\"directmedia\":\"no\",\r\n\"context\":\"main_routing\",\r\n\"host\":\"dynamic\",\r\n\"type\":\"user\",\r\n\"nat\":\"no\",\r\n\"port\":\"5060\",\r\n\"qualify\":\"no\",\r\n\"callgroup\":\"1\",\r\n\"pickupgroup\":\"1\",\r\n\"callcounter\":\"no\",\r\n\"faxdetect\":\"no\",\r\n\"call_limit\":\"\",\r\n\"trunk\":\"no\",\r\n\"transfer\":\"no\",\r\n\"email\":\"\",\r\n\"forward_policy\":{\"Busy\":\"571\",\"No Answer\":\"09158315762\",\"UnAvailable\":\"570\",\"All\":\"2121\"},\r\n\"more_options\":\"\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/users/add"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/users/update",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\"_id\":\"6033876dc92de036d1390923\",\r\n\"user_type\":\"SIP\",\r\n\"active\":\"yes\",\r\n\"name\":\"Test User\",\r\n\"number\":\"999999\",\r\n\"cid_number\":\"999999\",\r\n\"secret\":\"999999\",\r\n\"call_record\":\"no\",\r\n\"push_notification\":\"no\",\r\n\"deny\":\"0.0.0.0/0.0.0.0\",\r\n\"permit\":\"0.0.0.0/0.0.0.0\",\r\n\"dtmfmode\":\"rfc2833\",\r\n\"canreinvite\":\"no\",\r\n\"directmedia\":\"no\",\r\n\"context\":\"main_routing\",\r\n\"host\":\"dynamic\",\r\n\"type\":\"user\",\r\n\"nat\":\"no\",\r\n\"port\":\"5060\",\r\n\"qualify\":\"no\",\r\n\"callgroup\":\"1\",\r\n\"pickupgroup\":\"1\",\r\n\"callcounter\":\"no\",\r\n\"faxdetect\":\"no\",\r\n\"call_limit\":\"\",\r\n\"trunk\":\"no\",\r\n\"transfer\":\"no\",\r\n\"email\":\"\",\r\n\"forward_policy\":{\"Busy\":\"571\",\"No Answer\":\"09158315762\",\"UnAvailable\":\"570\",\"All\":\"2121\"},\r\n\"more_options\":\"\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/users/update"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/users/remove",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"_id\":\"6033876dc92de036d1390923\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/users/remove"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/users/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"type": "text",
+						"value": "{{api_key}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"status\":\"all\",\r\n    \"alike\":1,\r\n    \"conditions\":{\"name\": \"\", \"number\": \"\", \"mapped\": \"\"}\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/users/search"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/trunks/add",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"trunk_type\":\"SIP\",\r\n    \"name\":\"trunk_name_new\",\r\n    \"register_string\":\"3591011020:as#3591011020@192.168.1.10/3591011020\\t\",\r\n    \"active\":\"no\",\r\n    \"deny\":\"0.0.0.0/0.0.0.0\",\r\n    \"permit\":\"0.0.0.0/0.0.0.0\",\r\n    \"dtmfmode\":\"rfc2833\",\r\n    \"canreinvite\":\"no\",\r\n    \"directmedia\":\"no\",\r\n    \"context\":\"from-pstn\",\r\n    \"host\":\"192.168.1.10\",\r\n    \"type\":\"friend\",\r\n    \"nat\":\"force_rport,comedia\",\r\n    \"port\":\"5060\",\r\n    \"qualify\":\"yes\",\r\n    \"insecure\":\"port,invite\",\r\n    \"disallow\":\"all\",\r\n    \"allow\":\"ulaw,alaw\",\r\n    \"more_options\":\"fromuser=3591011020\\nusername=3591011020\\nsecret=as#3591011020\",\r\n    \"description\":\"\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/trunks/add"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/trunks/update",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"_id\":\"6033876dc92de036d1390923\",\r\n    \"trunk_type\":\"SIP\",\r\n    \"name\":\"trunk_name_new\",\r\n    \"register_string\":\"3591011020:as#3591011020@192.168.1.10/3591011020\\t\",\r\n    \"active\":\"no\",\r\n    \"deny\":\"0.0.0.0/0.0.0.0\",\r\n    \"permit\":\"0.0.0.0/0.0.0.0\",\r\n    \"dtmfmode\":\"rfc2833\",\r\n    \"canreinvite\":\"no\",\r\n    \"directmedia\":\"no\",\r\n    \"context\":\"from-pstn\",\r\n    \"host\":\"192.168.1.10\",\r\n    \"type\":\"friend\",\r\n    \"nat\":\"force_rport,comedia\",\r\n    \"port\":\"5060\",\r\n    \"qualify\":\"yes\",\r\n    \"insecure\":\"port,invite\",\r\n    \"disallow\":\"all\",\r\n    \"allow\":\"ulaw,alaw\",\r\n    \"more_options\":\"fromuser=3591011020\\nusername=3591011020\\nsecret=as#3591011020\",\r\n    \"description\":\"\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/trunks/update"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/trunks/remove",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"_id\":\"6033876dc92de036d1390923\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/trunks/remove"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/trunks/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"alike\":\"true\",\r\n    \"conditions\":{\r\n        \"name\":\"\"\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/trunks/search"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/queues/add",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\":\"NasimTelecom\",\r\n    \"number\":\"900\",\r\n    \"strategy\":\"ringall\",\r\n    \"ringinuse\":\"no\",\r\n    \"call_record\":\"yes\",\r\n    \"setinterfacevar\":\"yes\",\r\n    \"autofill\":\"yes\",\r\n    \"setqueuevar\":\"yes\",\r\n    \"setqueueentryvar\":\"yes\",\r\n    \"persistentmembers\":\"no\",\r\n    \"shared_lastcall\":\"no\",\r\n    \"announce_holdtime\":\"no\",\r\n    \"announce_position\":\"yes\",\r\n    \"joinempty\":\"strict\",\r\n    \"leavewhenempty\":\"yes\",\r\n    \"reportholdtime\":\"no\",\r\n    \"maxlen\":\"0\",\r\n    \"announce_frequency\":\"120\",\r\n    \"min_announce_frequency\":\"60\",\r\n    \"periodic_announce_frequency\":\"120\",\r\n    \"music\":\"gole orkideh\",\r\n    \"queue_callswaiting\":\"queue-callswaiting\",\r\n    \"queue_thankyou\":\"queue-thankyou\",\r\n    \"queue_thereare\":\"queue-thereare\",\r\n    \"queue_youarenext\":\"queue-youarenext\",\r\n    \"retry\":\"5\",\r\n    \"servicelevel\":\"60\",\r\n    \"timeout\":\"30\",\r\n    \"weight\":\"10\",\r\n    \"wrapuptime\":\"1\",\r\n    \"monitor_type\":\"MixMonitor\",\r\n    \"monitor_format\":\"wav\",\r\n    \"more_options\":\"\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/queues/add"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/queues/update",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"_id\":\"6033876dc92de036d1390923\",\r\n    \"name\":\"NasimTelecom\",\r\n    \"number\":\"900\",\r\n    \"strategy\":\"ringall\",\r\n    \"ringinuse\":\"no\",\r\n    \"call_record\":\"yes\",\r\n    \"setinterfacevar\":\"yes\",\r\n    \"autofill\":\"yes\",\r\n    \"setqueuevar\":\"yes\",\r\n    \"setqueueentryvar\":\"yes\",\r\n    \"persistentmembers\":\"no\",\r\n    \"shared_lastcall\":\"no\",\r\n    \"announce_holdtime\":\"no\",\r\n    \"announce_position\":\"yes\",\r\n    \"joinempty\":\"strict\",\r\n    \"leavewhenempty\":\"yes\",\r\n    \"reportholdtime\":\"no\",\r\n    \"maxlen\":\"0\",\r\n    \"announce_frequency\":\"120\",\r\n    \"min_announce_frequency\":\"60\",\r\n    \"periodic_announce_frequency\":\"120\",\r\n    \"music\":\"gole orkideh\",\r\n    \"queue_callswaiting\":\"queue-callswaiting\",\r\n    \"queue_thankyou\":\"queue-thankyou\",\r\n    \"queue_thereare\":\"queue-thereare\",\r\n    \"queue_youarenext\":\"queue-youarenext\",\r\n    \"retry\":\"5\",\r\n    \"servicelevel\":\"60\",\r\n    \"timeout\":\"30\",\r\n    \"weight\":\"10\",\r\n    \"wrapuptime\":\"1\",\r\n    \"monitor_type\":\"MixMonitor\",\r\n    \"monitor_format\":\"wav\",\r\n    \"more_options\":\"\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/queues/update"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/queues/remove",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"_id\":\"6033876dc92de036d1390923\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/queues/remove"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/queues/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"alike\":\"true\",\r\n    \"conditions\":{\r\n        \"name\":\"\",\r\n        \"number\":\"\"\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/queues/search"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/queues/addagent",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"queue\":\"900\",\r\n    \"source\":\"257\",\r\n    \"agent\":\"257\",\r\n    \"penalty\":\"1\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/queues/addagent"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/queues/removeagent",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"queue\":\"900\",\r\n    \"agent\":\"257\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/queues/removeagent"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/queues/pauseagent",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"queue\":\"999\",\r\n    \"agent\":\"553\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/queues/pauseagent"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/queues/resumeagent",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"queue\":\"999\",\r\n    \"agent\":\"553\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/queues/resumeagent"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/queues/batchaddagent",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"agents\":[\r\n        {\"queue\": \"900\", \"source\": \"100\", \"agent\": \"100\", \"penalty\": \"\"},\r\n        {\"queue\": \"900\", \"source\": \"101\", \"agent\": \"101\", \"penalty\": \"\"},\r\n        {\"queue\": \"900\", \"source\": \"102\", \"agent\": \"102\", \"penalty\": \"\"}\r\n    ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/queues/batchaddagent"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/queues/batchremoveagent",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"agents\":[\r\n        {\"queue\": \"900\", \"agent\": \"100\"},\r\n        {\"queue\": \"900\", \"agent\": \"101\"},\r\n        {\"queue\": \"900\", \"agent\": \"102\"}\r\n    ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/queues/batchremoveagent"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/queues/batchpauseagent",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"agents\":[\r\n        {\"queue\": \"900\", \"agent\": \"100\"},\r\n        {\"queue\": \"900\", \"agent\": \"101\"},\r\n        {\"queue\": \"900\", \"agent\": \"102\"}\r\n    ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/queues/batchpauseagent"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/queues/batchresumeagent",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"agents\":[\r\n        {\"queue\": \"900\", \"agent\": \"100\"},\r\n        {\"queue\": \"900\", \"agent\": \"101\"},\r\n        {\"queue\": \"900\", \"agent\": \"102\"}\r\n    ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/queues/batchresumeagent"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/blacklists/add",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"number\":\"9999\",\r\n    \"comment\":\"\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/blacklists/add"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/blacklists/update",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"_id\":\"6033876dc92de036d1390923\",\r\n    \"number\":\"9999\",\r\n    \"comment\":\"\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/blacklists/update"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/blacklists/remove",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"_id\":\"6033876dc92de036d1390923\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/blacklists/remove"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/blacklists/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"alike\":\"true\",\r\n    \"conditions\":{\"number\":\"\"}\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/blacklists/search"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/whitelists/add",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"number\":\"09121234567\",\r\n    \"labels\":[\"ext_test\"],\r\n    \"comment\":\"\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/whitelists/add"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/whitelists/update",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"_id\":\"6033876dc92de036d1390923\",\r\n    \"number\":\"09121234567\",\r\n    \"labels\":[\"ext_test\"],\r\n    \"comment\":\"\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/whitelists/update"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/whitelists/remove",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"_id\":\"6033876dc92de036d1390923\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/whitelists/remove"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/whitelists/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"alike\":\"true\",\r\n    \"conditions\":{\"number\":\"\"}\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/whitelists/search"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/announcements/upload",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": []
+						}
+					]
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/announcements/upload"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/announcements/add",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\":\"test_sound\",\r\n    \"filename\":\"file-20200624051520-61681-announcement-wiresha_\",\r\n    \"comment\":\"Just for test\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/announcements/add"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/announcements/update",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"_id\":\"6033876dc92de036d1390923\",\r\n    \"name\":\"test_sound_new\",\r\n    \"filename\":\"file-20200624051520-61681-announcement-wiresha_\",\r\n    \"comment\":\"Just for test\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/announcements/update"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/announcements/remove",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"_id\":\"6033876dc92de036d1390923\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/announcements/remove"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/announcements/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"alike\":\"true\",\r\n    \"conditions\":{\"name\":\"\"}\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/announcements/search"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/musiconholds/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"alike\":\"true\",\r\n    \"conditions\":{\"name\":\"\"}\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/musiconholds/search"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/faxes/upload",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": "/C:/Users/James/Desktop/fax-test.txt"
+						}
+					]
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/faxes/upload"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/faxes/add",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"sender_id\":\"username1\",\r\n    \"to\":\"112233\",\r\n    \"ext\":\"558\",\r\n    \"trunk_name\":\"trunk_name1\",\r\n    \"file\":\"file-20200624051520-61681-fax-test\",\r\n    \"text\":\"This is a sample text.\",\r\n    \"description\":\"Just for test\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/faxes/add"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/faxes/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"alike\":\"true\",\r\n    \"pagination\":{\r\n        \"start\":0,\r\n        \"count\":20,\r\n        \"sorting\":{}\r\n    },\r\n    \"date_range\":{\r\n        \"from\":\"2020-12-25 13:47\",\r\n        \"to\":\"2020-12-27 13:47\"\r\n    },\r\n    \"conditions\":{\r\n        \"src\":\"\",\r\n        \"dst\":\"\",\r\n        \"status\":\"\",\r\n        \"type\":\"\"\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/faxes/search"
+			},
+			"response": []
+		},
+		{
+			"name": "pbx/faxes/download",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"id\":\"jkhrfg876q435jyj3et45tiuwh437\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/pbx/faxes/download"
+			},
+			"response": []
+		},
+		{
+			"name": "call/originate/act",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"caller\":\"557\",\r\n    \"callee\":\"09155151515\",\r\n    \"context\":\"outgoing_context\",\r\n    \"caller_id\":\"557\",\r\n    \"trunk_name\":\"trunk1\",\r\n    \"timeout\":\"30\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/call/originate/act"
+			},
+			"response": []
+		},
+		{
+			"name": "voicemails/voicemails/add",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\":\"test voicemail\",\r\n    \"number\":\"999999\",\r\n    \"password\":\"999999\",\r\n    \"email\":\"\",\r\n    \"required_password\":\"no\",\r\n    \"allow_change_password\":\"no\",\r\n    \"send_email\":\"no\",\r\n    \"attach_file_email\":\"no\",\r\n    \"play_busy\":\"no\",\r\n    \"play_unavailable\":\"no\",\r\n    \"play_welcome\":\"no\",\r\n    \"Play_CID\":\"no\",\r\n    \"Play_Envelope\":\"no\",\r\n    \"Delete_Voicemail\":\"no\",\r\n    \"more_options\":\"\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/voicemails/voicemails/add"
+			},
+			"response": []
+		},
+		{
+			"name": "voicemails/voicemails/update",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"_id\":\"6033876dc92de036d1390923\",\r\n    \"name\":\"test voicemail\",\r\n    \"number\":\"999999\",\r\n    \"password\":\"999999\",\r\n    \"email\":\"\",\r\n    \"required_password\":\"no\",\r\n    \"allow_change_password\":\"no\",\r\n    \"send_email\":\"no\",\r\n    \"attach_file_email\":\"no\",\r\n    \"play_busy\":\"no\",\r\n    \"play_unavailable\":\"no\",\r\n    \"play_welcome\":\"no\",\r\n    \"Play_CID\":\"no\",\r\n    \"Play_Envelope\":\"no\",\r\n    \"Delete_Voicemail\":\"no\",\r\n    \"more_options\":\"\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/voicemails/voicemails/update"
+			},
+			"response": []
+		},
+		{
+			"name": "voicemails/voicemails/remove",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"_id\":\"6033876dc92de036d1390923\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/voicemails/voicemails/remove"
+			},
+			"response": []
+		},
+		{
+			"name": "voicemails/voicemails/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"alike\":\"true\",\r\n    \"conditions\":{\r\n        \"name\":\"\",\r\n        \"number\":\"\"\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/voicemails/voicemails/search"
+			},
+			"response": []
+		},
+		{
+			"name": "voicemails/audio/download",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"type": "text",
+						"value": "{{api_key}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"file\":\"1588589140__vm_record_file_8151.wav\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/voicemails/audio/download"
+			},
+			"response": []
+		},
+		{
+			"name": "voicemails/inbox/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"alike\":\"true\",\r\n    \"pagination\":{\r\n        \"start\":0,\r\n        \"count\":20,\r\n        \"sorting\":{}\r\n    },\r\n    \"date_range\":{\r\n        \"from\":\"2020-12-25 13:53\",\r\n        \"to\":\"2020-12-27 13:53\"\r\n    },\r\n    \"conditions\":{\r\n        \"src\":\"\",\r\n        \"number\":\"999\"\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/voicemails/inbox/search"
+			},
+			"response": []
+		},
+		{
+			"name": "reports/quick/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"conditions\":{\"from\": \"\", \"to\": \"\"},\r\n    \"date_range\":{\"from\":\"2020-06-15 15:16\",\"to\":\"2020-06-22 15:16\"},\r\n    \"pagination\":{\"start\":0,\"count\":20,\"sorting\":{}},\r\n    \"alike\":\"true\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/reports/quick/search"
+			},
+			"response": []
+		},
+		{
+			"name": "reports/quick/info",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"cuid\":\"1567070207.883\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/reports/quick/info"
+			},
+			"response": []
+		},
+		{
+			"name": "reports/audio/download",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"type": "text",
+						"value": "{{api_key}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"file\":\"20200921_1600675211.10033.1.mp3\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/reports/audio/download"
+			},
+			"response": []
+		},
+		{
+			"name": "reports/cdr/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"type": "text",
+						"value": "{{api_key}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"conditions\":{\"from\": \"\", \"to\": \"\", \"cuid\":\"\"},\r\n    \"date_range\":{\"from\":\"2020-06-15 15:16\",\"to\":\"2020-06-22 15:16\"},\r\n    \"pagination\":{\"start\":0,\"count\":20,\"sorting\":{}},\r\n    \"alike\":\"true\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/reports/cdr/search"
+			},
+			"response": []
+		},
+		{
+			"name": "reports/cdr/ordered/id",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"type": "text",
+						"value": "{{api_key}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"_id\": \"5d5e8d6a2848da45d1d94849\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/reports/cdr/ordered/id"
+			},
+			"response": []
+		},
+		{
+			"name": "reports/queue/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"type": "text",
+						"value": "{{api_key}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"conditions\":{\"from\": \"\", \"to\": \"\", \"cuid\":\"\", \"qnum\":\"\"},\r\n    \"date_range\":{\"from\":\"2020-06-15 15:16\",\"to\":\"2020-06-22 15:16\"},\r\n    \"pagination\":{\"start\":0,\"count\":20,\"sorting\":{}},\r\n    \"alike\":\"true\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/reports/queue/search"
+			},
+			"response": []
+		},
+		{
+			"name": "reports/queue/ordered/id",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"type": "text",
+						"value": "{{api_key}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"_id\":\"5ece68552848da53b2bb1665\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/reports/queue/ordered/id"
+			},
+			"response": []
+		},
+		{
+			"name": "reports/queue_details/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"type": "text",
+						"value": "{{api_key}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"conditions\":{\"from\": \"\", \"to\": \"\", \"cuid\":\"\", \"queue\":\"\", \"queue_id\":\"\"},\r\n    \"date_range\":{\"from\":\"2020-06-15 15:16\",\"to\":\"2020-06-22 15:16\"},\r\n    \"pagination\":{\"start\":0,\"count\":20,\"sorting\":{}},\r\n    \"alike\":\"true\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/reports/queue_details/search"
+			},
+			"response": []
+		},
+		{
+			"name": "reports/queue_details/ordered/id",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"type": "text",
+						"value": "{{api_key}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"_id\":\"5d6b8c542848da45d1d949ec\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/reports/queue_details/ordered/id"
+			},
+			"response": []
+		},
+		{
+			"name": "reports/agent/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"type": "text",
+						"value": "{{api_key}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"conditions\":{\"from\": \"\", \"to\": \"\", \"exten\":\"\", \"queue\":\"\"},\r\n    \"date_range\":{\"from\":\"2019-06-15 15:16\",\"to\":\"2020-06-22 15:16\"},\r\n    \"pagination\":{\"start\":0,\"count\":20,\"sorting\":{}},\r\n    \"alike\":\"true\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/reports/agent/search"
+			},
+			"response": []
+		},
+		{
+			"name": "reports/poll/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"type": "text",
+						"value": "{{api_key}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"conditions\":{\"from\": \"\", \"to\": \"\", \"label\":\"\", \"queue\":\"\", \"cuid\":\"\"},\r\n    \"date_range\":{\"from\":\"2019-06-15 15:16\",\"to\":\"2020-06-22 15:16\"},\r\n    \"pagination\":{\"start\":0,\"count\":20,\"sorting\":{}},\r\n    \"alike\":\"true\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/reports/poll/search"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/announcements/upload",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": "/C:/Users/James/Desktop/Musics/BBC-Farsi-Pargar.mp3"
+						}
+					]
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/announcements/upload"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/announcements/add",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\":\"test_sound\",\r\n    \"filename\":\"file-20200825065434-58826-bbc-farsi-pargarmp3_.wav\",\r\n    \"description\":\"Just for test\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/announcements/add"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/announcements/update",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"_id\":\"6033876dc92de036d1390923\",\r\n    \"name\":\"test_sound_new\",\r\n    \"filename\":\"file-20200825065434-58826-bbc-farsi-pargarmp3_.wav\",\r\n    \"description\":\"Just for test\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/announcements/update"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/announcements/remove",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"_id\":\"6033876dc92de036d1390923\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/announcements/remove"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/announcements/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"alike\":\"true\",\r\n    \"conditions\":{\"name\":\"\"}\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/announcements/search"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/campaigns/add",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\":\"test\",\r\n    \"trunk_manager_id\":\"5f6c5b56c92de0068f32e592\",\r\n    \"interface_context\":\"auto\",\r\n    \"interface_text\":\"text1\",\r\n    \"numbers\":[\"09212396500\",\"09187213593\",\"09188898969\"],\r\n    \"groups\":[\"5e96c8c2c92de0468920657e\",\"5e96d40cc92de025690d0a61\"],\r\n    \"try_interval\":\"600\",\r\n    \"try\":\"1\",\r\n    \"start\":\"2021-02-19 15:17\",\r\n    \"end\":\"2021-02-23 15:17\",\r\n    \"announcement\":\"5e5b629ec92de075df7af457\",\r\n    \"description\":\"\",\r\n    \"count\":3\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/campaigns/add"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/campaigns/update",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"_id\":\"6048af34c92de0758e6b21dc\",\r\n    \"name\":\"imrorteza04\",\r\n    \"trunk_manager_id\":\"skajdfgoweurf783465\",\r\n    \"interface_context\":\"auto\",\r\n    \"interface_text\":\"text1\",\r\n    \"try_interval\":\"600\",\r\n    \"try\":\"1\",\r\n    \"start\":\"2021-02-19 15:17\",\r\n    \"end\":\"2021-02-23 15:17\",\r\n    \"announcement\":\"lkjaghdfverfg78345893\",\r\n    \"description\":\"\",\r\n    \"count\":3\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/campaigns/update"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/campaigns/remove",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"_id\":\"6033876dc92de036d1390923\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/campaigns/remove"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/campaigns/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"alike\":\"true\",\r\n    \"conditions\":{\"name\":\"\",\"description\":\"\",\"status\":\"\"},\r\n    \"pagination\":{\"start\":0,\"count\":20,\"sorting\":{}}\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/campaigns/search"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/contacts/add",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\":\"test_contact\",\r\n    \"number\":\"112233\",\r\n    \"description\":\"Just for test\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/contacts/add"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/contacts/update",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"_id\":\"6033876dc92de036d1390923\",\r\n    \"name\":\"test_contact_new\",\r\n    \"number\":\"112233\",\r\n    \"description\":\"Just for test\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/contacts/update"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/contacts/remove",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"_id\":\"6033876dc92de036d1390923\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/contacts/remove"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/contacts/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"alike\":\"true\",\r\n    \"conditions\":{\"name\":\"\",\"number\":\"\",\"description\":\"\"},\r\n    \"pagination\":{\"start\":0,\"count\":20,\"sorting\":{}}\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/contacts/search"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/groups/upload",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": "/C:/Users/Android/Desktop/announcement-wireshark.wav"
+						}
+					]
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/groups/upload"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/groups/add",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\":\"test_group\",\r\n    \"numbers\":[\"1111\", \"2222\", \"3333\"],\r\n    \"description\":\"just for test\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/groups/add"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/groups/update",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"_id\":\"6033876dc92de036d1390923\",\r\n    \"name\":\"test_group_new\",\r\n    \"numbers\":[\"1111\", \"2222\", \"3333\"],\r\n    \"description\":\"just for test\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/groups/update"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/groups/remove",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"_id\":\"6033876dc92de036d1390923\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/groups/remove"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/groups/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"alike\":\"true\",\r\n    \"conditions\":{\"name\":\"\",\"description\":\"\"},\r\n    \"pagination\":{\"start\":0,\"count\":20,\"sorting\":{}}\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/groups/search"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/reports/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"alike\":\"true\",\r\n    \"pagination\":{\"start\":0,\"count\":20,\"sorting\":{}},\r\n    \"date_range\":{\"from\":\"2020-12-26 15:29\",\"to\":\"2020-12-28 15:29\"},\r\n    \"conditions\":{\r\n        \"disposition\":\"\",\r\n        \"campaign_id\":\"\",\r\n        \"number\":\"\"}\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/reports/search"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/reports/ordered/id",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"type": "text",
+						"value": "{{api_key}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"_id\":\"5f0570a32848da344df86ac4\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/reports/ordered/id"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/reports/info",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"_id\":\"5f37a2792848da344df86b0a(cdr_id)\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/reports/info"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/trunks/update",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"id\":\"trunk_manager1\",\r\n    \"title\":\"trunk_manager2\",\r\n    \"status\":\"active\",\r\n    \"wait_cache_length\":\"100\",\r\n    \"capacity\":\"50\",\r\n    \"dial_interval\":\"1\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/trunks/update"
+			},
+			"response": []
+		},
+		{
+			"name": "autodialer/trunks/search",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"username": "{{auth_user}}",
+						"password": "{{auth_pass}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"alike\":\"true\",\r\n    \"conditions\":{\"title\":\"\"}\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/autodialer/trunks/search"
+			},
+			"response": []
+		},
+		{
+			"name": "setting/ping/act",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "{{auth_pass}}",
+						"username": "{{auth_user}}"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-APIKEY",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{simotel_address}}/{{api_v4_address}}/setting/ping/act"
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "simotel_address",
+			"value": "http://192.168.1.1/"
+		},
+		{
+			"key": "api_v4_address",
+			"value": "api/v4"
+		},
+		{
+			"key": "auth_user",
+			"value": "simotel"
+		},
+		{
+			"key": "auth_pass",
+			"value": "simotel"
+		},
+		{
+			"key": "api_key",
+			"value": "token"
+		}
+	]
+}
