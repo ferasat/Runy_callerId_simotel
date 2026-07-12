@@ -1,6 +1,6 @@
 # Simotel Softphone — API Documentation
 
-This softphone consumes **Simotel API v4**. All requests are `POST` with JSON bodies and the `X-APIKEY` header.
+This softphone consumes **Simotel API v4** using the official Postman collection and `simotel-laravel-connect` conventions.
 
 Base URL pattern:
 
@@ -12,24 +12,35 @@ Example: `https://pbx.example.com/api/v4/setting/ping/act`
 
 ## Authentication
 
-| Header | Value |
-|--------|-------|
-| `X-APIKEY` | API token from Simotel |
-| `Content-Type` | `application/json` |
+| Mode    | Mechanism                                                |
+| ------- | -------------------------------------------------------- |
+| `basic` | HTTP Basic (`api_user` / `api_pass`)                     |
+| `token` | Header `X-APIKEY`                                        |
+| `both`  | Basic **and** `X-APIKEY` (Postman local-simotel default) |
 
-Optional Basic auth fields can be stored per server for future use; v4 collection uses API key.
+All requests: `POST` + `Content-Type: application/json`.
 
-## Endpoints used by the app
+## Event API
 
-### Health
+Official event names: `IncomingCall`, `OutgoingCall`, `NewState`, `Transfer`, `Cdr`, `CdrQueue`, `ExtenAdded`, `ExtenRemoved`, `IncomingFax`, `VoiceMail`, `VoiceMailEmail`, `Survey`, `Ping`.
 
-`POST setting/ping/act`
+Desktop webhook listens on `eventWebhookPort` (default **3939**). Point Simotel Event API at `http://AGENT_IP:3939/`.
 
-Body: `{}`
+## Endpoints used
 
-### Click to call
+| Endpoint                                                             | Purpose           |
+| -------------------------------------------------------------------- | ----------------- |
+| `setting/ping/act`                                                   | Health            |
+| `call/originate/act`                                                 | Click to call     |
+| `pbx/users/search`                                                   | Agents/extensions |
+| `pbx/queues/search`                                                  | Queues            |
+| `pbx/queues/addagent` / `removeagent` / `pauseagent` / `resumeagent` | Queue membership  |
+| `reports/cdr/search`                                                 | CDR / history     |
+| `reports/quick/search`                                               | Quick reports     |
+| `reports/queue/search`                                               | Queue reports     |
+| `reports/audio/download`                                             | Recordings        |
 
-`POST call/originate/act`
+Originate body:
 
 ```json
 {
@@ -42,93 +53,21 @@ Body: `{}`
 }
 ```
 
-### Users
+## Internal IPC (`window.simotel`)
 
-`POST pbx/users/search`
-
-```json
-{
-  "status": "all",
-  "alike": 1,
-  "conditions": { "name": "", "number": "", "mapped": "" }
-}
-```
-
-### Queues
-
-| Endpoint | Purpose |
-|----------|---------|
-| `pbx/queues/search` | List queues |
-| `pbx/queues/addagent` | Join queue |
-| `pbx/queues/removeagent` | Leave queue |
-| `pbx/queues/pauseagent` | Pause agent |
-| `pbx/queues/resumeagent` | Resume agent |
-
-Pause example:
-
-```json
-{ "queue": "999", "agent": "553" }
-```
-
-### Call history / CDR
-
-`POST reports/cdr/search`
-
-```json
-{
-  "conditions": { "from": "", "to": "", "cuid": "" },
-  "date_range": { "from": "2020-06-15 15:16", "to": "2020-06-22 15:16" },
-  "pagination": { "start": 0, "count": 20, "sorting": {} },
-  "alike": "true"
-}
-```
-
-Also used: `reports/quick/search`, `reports/queue/search`.
-
-### Recordings
-
-`POST reports/audio/download`
-
-```json
-{ "file": "20200921_1600675211.10033.1.mp3" }
-```
-
-## Internal IPC API (`window.simotel`)
-
-Renderer never calls Simotel directly. It uses the preload bridge:
-
-| Namespace | Examples |
-|-----------|----------|
-| `servers` | `list`, `save`, `delete`, `test` |
-| `auth` | `login`, `logout`, `status` |
-| `call` | `originate`, `answer`, `reject`, `mute`, `transfer`, `history` |
-| `contacts` | `list`, `save`, `search`, `importCsv`, `exportCsv` |
-| `queues` | `list`, `join`, `leave`, `pause`, `resume` |
-| `agent` | `getStatus`, `setStatus` |
-| `recordings` | `list`, `download` |
-| `realtime` | `status`, `onEvent`, `onConnection` |
-| `settings` / `logs` / `updater` / `backup` | configuration & ops |
-
-Channel names are centralized in `shared/constants/index.ts`.
+| Namespace                                               | Examples                                                                         |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `servers`                                               | `list`, `save`, `delete`, `test`, `setDefault`                                   |
+| `users`                                                 | `list`, `save`, `delete` (admin)                                                 |
+| `auth`                                                  | `login`, `logout`, `status`                                                      |
+| `call`                                                  | `originate`, `answer`, `reject`, `mute`, `hold`, `record`, `transfer`, `history` |
+| `dashboard`                                             | `stats`                                                                          |
+| `contacts` / `queues` / `agent` / `recordings`          | feature APIs                                                                     |
+| `realtime` / `settings` / `logs` / `updater` / `backup` | ops                                                                              |
 
 ## Client behaviors
 
-Every HTTP call through `SimotelApiClient` includes:
+Axios client includes timeout, exponential retry, auth mode headers, logging, optional cache, and typed `ApiError`.
 
-- Timeout (default 15s)
-- Exponential retry on network / 5xx
-- Structured logging
-- Optional response cache (TTL)
-- Typed `ApiError` on failure
-
-## Realtime events (normalized)
-
-Inbound PBX payloads are mapped to:
-
-`incoming_call` · `call_answered` · `call_ended` · `call_missed` · `transfer` · `recording_started` · `recording_finished` · `queue_update` · `agent_status`
-
-If no push transport is available, smart polling runs with backoff to avoid unnecessary load.
-
-## Reference
-
-Full Postman collection: `docs/Simotel_V4_edition_3.postman_collection.json`
+Full research notes: `docs/guides/SIMOTEL_REFERENCE.md`  
+Postman: `docs/Simotel_V4_edition_3.postman_collection.json`

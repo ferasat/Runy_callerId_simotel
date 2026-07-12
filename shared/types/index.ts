@@ -2,15 +2,12 @@
 
 export type Environment = 'development' | 'testing' | 'production'
 
+export type ApiAuthMode = 'basic' | 'token' | 'both'
+
+export type UserRole = 'admin' | 'agent'
+
 export type AgentStatus =
-  | 'ready'
-  | 'busy'
-  | 'break'
-  | 'lunch'
-  | 'meeting'
-  | 'offline'
-  | 'after_call_work'
-  | 'custom'
+  'ready' | 'busy' | 'break' | 'lunch' | 'meeting' | 'offline' | 'after_call_work' | 'custom'
 
 export type CallDirection = 'inbound' | 'outbound' | 'internal' | 'unknown'
 export type CallState =
@@ -20,37 +17,81 @@ export type CallState =
   | 'held'
   | 'muted'
   | 'transferring'
+  | 'recording'
   | 'ended'
   | 'missed'
 
-export type RealtimeProtocol =
-  | 'websocket'
-  | 'sse'
-  | 'webhook'
-  | 'long_polling'
-  | 'smart_polling'
+export type RealtimeProtocol = 'websocket' | 'sse' | 'webhook' | 'long_polling' | 'smart_polling'
 
 export type ConnectionState =
-  | 'disconnected'
-  | 'connecting'
-  | 'connected'
-  | 'reconnecting'
-  | 'offline'
+  'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'offline'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type AppLanguage = 'en' | 'fa'
+
+export type SimotelEventName =
+  | 'IncomingCall'
+  | 'OutgoingCall'
+  | 'NewState'
+  | 'Transfer'
+  | 'Cdr'
+  | 'CdrQueue'
+  | 'ExtenAdded'
+  | 'ExtenRemoved'
+  | 'IncomingFax'
+  | 'VoiceMail'
+  | 'VoiceMailEmail'
+  | 'Survey'
+  | 'Ping'
 
 export interface ServerConfig {
   id: string
   name: string
   baseUrl: string
+  /** Optional explicit host parts (derived into baseUrl when provided). */
+  host?: string
+  port?: number
+  https?: boolean
   apiPath: string
+  apiAuth: ApiAuthMode
   apiKey: string
   username?: string
+  /** Plaintext only in-memory / forms; persisted as encryptedPassword. */
   password?: string
+  encryptedPassword?: string
+  encryptedApiKey?: string
+  timeoutMs: number
+  reconnectPolicy: {
+    enabled: boolean
+    maxRetries: number
+    baseDelayMs: number
+  }
   isDefault: boolean
+  health?: 'unknown' | 'healthy' | 'degraded' | 'down'
+  lastHealthAt?: string
   createdAt: string
   updatedAt: string
+}
+
+export interface AppUser {
+  id: string
+  fullName: string
+  username: string
+  /** Never returned from IPC in plaintext after save. */
+  hasPassword: boolean
+  extension: string
+  agentId?: string
+  queueMembership: string[]
+  role: UserRole
+  avatarUrl?: string
+  theme: ThemeMode
+  language: AppLanguage
+  permissions: string[]
+  serverId?: string
+  lastLoginAt?: string
+  createdAt: string
+  updatedAt: string
+  active: boolean
 }
 
 export interface UserProfile {
@@ -64,6 +105,7 @@ export interface UserProfile {
   status: AgentStatus
   customStatusLabel?: string
   statusChangedAt?: string
+  role?: UserRole
 }
 
 export interface ContactNumber {
@@ -103,14 +145,18 @@ export interface ActiveCall {
   callerName?: string
   company?: string
   queue?: string
+  agent?: string
+  extension?: string
   avatarUrl?: string
   direction: CallDirection
   state: CallState
   startedAt: string
   answeredAt?: string
   muted: boolean
+  held: boolean
   recording: boolean
   durationSec: number
+  crmData?: Record<string, unknown>
 }
 
 export interface CallHistoryEntry {
@@ -170,6 +216,28 @@ export interface WaitingCaller {
   position: number
 }
 
+export interface DashboardStats {
+  currentCalls: number
+  waitingCalls: number
+  answeredToday: number
+  missedCalls: number
+  abandonedCalls: number
+  averageTalkTimeSec: number
+  averageWaitingTimeSec: number
+  averageRingTimeSec: number
+  longestCallSec: number
+  currentQueue?: string
+  loggedAgents: number
+  busyAgents: number
+  availableAgents: number
+  offlineAgents: number
+  connectionHealth: ConnectionState
+  serverStatus: 'unknown' | 'healthy' | 'degraded' | 'down'
+  callsPerHour: Array<{ hour: string; total: number; answered: number; missed: number }>
+  queuePerformance: Array<{ name: string; answered: number; abandoned: number; waiting: number }>
+  agentPerformance: Array<{ name: string; answered: number; talkSec: number }>
+}
+
 export interface AppSettings {
   theme: ThemeMode
   language: AppLanguage
@@ -181,9 +249,12 @@ export interface AppSettings {
   customRingtonePath?: string
   defaultServerId?: string
   defaultExtension?: string
+  lastUsername?: string
+  rememberLastUser: boolean
   originateContext: string
   originateTimeout: number
   autoCheckUpdates: boolean
+  eventWebhookPort: number
   logLevel: 'error' | 'warn' | 'info' | 'debug'
 }
 
@@ -228,16 +299,18 @@ export interface ApiErrorShape {
 
 export interface LogEntry {
   id: string
-  category:
-    | 'error'
-    | 'api'
-    | 'realtime'
-    | 'connection'
-    | 'authentication'
-    | 'call'
-    | 'system'
+  category: 'error' | 'api' | 'realtime' | 'connection' | 'authentication' | 'call' | 'system'
   level: 'error' | 'warn' | 'info' | 'debug'
   message: string
   meta?: Record<string, unknown>
   createdAt: string
+}
+
+export interface SessionInfo {
+  serverId: string
+  extension: string
+  name: string
+  role: UserRole
+  userId?: string
+  username?: string
 }

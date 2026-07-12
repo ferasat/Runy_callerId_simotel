@@ -7,7 +7,7 @@
  * - Soft deletes avoided; explicit delete + audit via logs table.
  */
 
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 
 export const SCHEMA_SQL = `
 PRAGMA journal_mode = WAL;
@@ -22,11 +22,21 @@ CREATE TABLE IF NOT EXISTS servers (
   id TEXT PRIMARY KEY NOT NULL,
   name TEXT NOT NULL,
   base_url TEXT NOT NULL,
+  host TEXT,
+  port INTEGER,
+  https INTEGER NOT NULL DEFAULT 1,
   api_path TEXT NOT NULL DEFAULT 'api/v4',
-  api_key TEXT NOT NULL,
+  api_auth TEXT NOT NULL DEFAULT 'both',
+  api_key TEXT NOT NULL DEFAULT '',
+  encrypted_api_key TEXT,
   username TEXT,
   password TEXT,
+  encrypted_password TEXT,
+  timeout_ms INTEGER NOT NULL DEFAULT 15000,
+  reconnect_json TEXT NOT NULL DEFAULT '{"enabled":true,"maxRetries":8,"baseDelayMs":1000}',
   is_default INTEGER NOT NULL DEFAULT 0,
+  health TEXT NOT NULL DEFAULT 'unknown',
+  last_health_at TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -43,6 +53,27 @@ CREATE TABLE IF NOT EXISTS users (
   custom_status_label TEXT,
   status_changed_at TEXT,
   UNIQUE(server_id, extension)
+);
+
+CREATE TABLE IF NOT EXISTS app_users (
+  id TEXT PRIMARY KEY NOT NULL,
+  full_name TEXT NOT NULL,
+  username TEXT NOT NULL UNIQUE,
+  password_salt TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  extension TEXT NOT NULL,
+  agent_id TEXT,
+  queue_membership_json TEXT NOT NULL DEFAULT '[]',
+  role TEXT NOT NULL DEFAULT 'agent',
+  avatar_url TEXT,
+  theme TEXT NOT NULL DEFAULT 'system',
+  language TEXT NOT NULL DEFAULT 'en',
+  permissions_json TEXT NOT NULL DEFAULT '[]',
+  server_id TEXT,
+  last_login_at TEXT,
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS settings (
@@ -187,6 +218,41 @@ CREATE TABLE IF NOT EXISTS request_queue (
 );
 `
 
+export const MIGRATION_V2 = `
+ALTER TABLE servers ADD COLUMN host TEXT;
+ALTER TABLE servers ADD COLUMN port INTEGER;
+ALTER TABLE servers ADD COLUMN https INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE servers ADD COLUMN api_auth TEXT NOT NULL DEFAULT 'both';
+ALTER TABLE servers ADD COLUMN encrypted_api_key TEXT;
+ALTER TABLE servers ADD COLUMN encrypted_password TEXT;
+ALTER TABLE servers ADD COLUMN timeout_ms INTEGER NOT NULL DEFAULT 15000;
+ALTER TABLE servers ADD COLUMN reconnect_json TEXT NOT NULL DEFAULT '{"enabled":true,"maxRetries":8,"baseDelayMs":1000}';
+ALTER TABLE servers ADD COLUMN health TEXT NOT NULL DEFAULT 'unknown';
+ALTER TABLE servers ADD COLUMN last_health_at TEXT;
+
+CREATE TABLE IF NOT EXISTS app_users (
+  id TEXT PRIMARY KEY NOT NULL,
+  full_name TEXT NOT NULL,
+  username TEXT NOT NULL UNIQUE,
+  password_salt TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  extension TEXT NOT NULL,
+  agent_id TEXT,
+  queue_membership_json TEXT NOT NULL DEFAULT '[]',
+  role TEXT NOT NULL DEFAULT 'agent',
+  avatar_url TEXT,
+  theme TEXT NOT NULL DEFAULT 'system',
+  language TEXT NOT NULL DEFAULT 'en',
+  permissions_json TEXT NOT NULL DEFAULT '[]',
+  server_id TEXT,
+  last_login_at TEXT,
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+`
+
 export const MIGRATIONS: Record<number, string> = {
-  1: SCHEMA_SQL
+  1: SCHEMA_SQL,
+  2: MIGRATION_V2
 }

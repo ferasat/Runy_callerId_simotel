@@ -2,8 +2,15 @@ import { BrowserWindow, dialog, ipcMain } from 'electron'
 import { writeFileSync, readFileSync } from 'fs'
 import { v4 as uuid } from 'uuid'
 import { IPC_CHANNELS } from '../../../shared/constants'
-import type { Contact, ServerConfig } from '../../../shared/types'
+import type {
+  AppUser,
+  Contact,
+  DashboardStats,
+  ServerConfig,
+  SessionInfo
+} from '../../../shared/types'
 import {
+  appUsersRepo,
   callHistoryRepo,
   contactsRepo,
   createBackup,
@@ -11,20 +18,18 @@ import {
   logsRepo,
   notificationsRepo,
   openDatabase,
+  resolveServerSecrets,
   settingsRepo,
   serversRepo,
   usersRepo,
   cacheRepo
 } from '../db'
 import { RealtimeEngine } from '../realtime/engine'
+import { EventWebhookServer } from '../realtime/webhookServer'
 import type { CallService } from '../services/callService'
 import { SimotelApiClient } from '../services/simotelApi'
-import {
-  checkForUpdates,
-  downloadUpdate,
-  getUpdaterStatus,
-  installUpdate
-} from '../updater'
+import { readRememberedSession, rememberSession } from '../services/sessionStore'
+import { checkForUpdates, downloadUpdate, getUpdaterStatus, installUpdate } from '../updater'
 
 export interface IpcContext {
   getMainWindow: () => BrowserWindow | null
@@ -36,12 +41,38 @@ export interface IpcContext {
 
 let apiClient: SimotelApiClient | null = null
 let realtime: RealtimeEngine | null = null
-let session: { serverId: string; extension: string; name: string } | null = null
+let webhook: EventWebhookServer | null = null
+let session: SessionInfo | null = null
+
+function broadcastRealtime(event: unknown): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    win.webContents.send(IPC_CHANNELS.REALTIME_EVENT, event)
+  }
+}
+
+function wireRealtimeEvents(): void {
+  const handler = (event: Parameters<CallService['handleRealtimeEvent']>[0]): void => {
+    ctxRef?.callService.handleRealtimeEvent(event)
+    broadcastRealtime(event)
+  }
+  realtime?.on('event', handler)
+  webhook?.on('event', handler)
+  realtime?.on('state', (state) => {
+    for (const win of BrowserWindow.getAllWindows()) {
+      win.webContents.send(IPC_CHANNELS.CONNECTION_STATUS, {
+        state,
+        protocol: realtime?.getStatus().protocol ?? 'webhook'
+      })
+    }
+  })
+}
+
+let ctxRef: IpcContext | null = null
 
 export function registerIpcHandlers(ctx: IpcContext): void {
+  ctxRef = ctx
   openDatabase()
 
-  // Window
   ipcMain.handle(IPC_CHANNELS.WINDOW_MINIMIZE, () => ctx.getMainWindow()?.minimize())
   ipcMain.handle(IPC_CHANNELS.WINDOW_MAXIMIZE, () => {
     const win = ctx.getMainWindow()
@@ -53,129 +84,162 @@ export function registerIpcHandlers(ctx: IpcContext): void {
   ipcMain.handle(IPC_CHANNELS.WINDOW_SHOW_POPUP, () => ctx.showPopup())
   ipcMain.handle(IPC_CHANNELS.WINDOW_HIDE_POPUP, () => ctx.hidePopup())
 
-  // Servers
   ipcMain.handle(IPC_CHANNELS.SERVERS_LIST, () => serversRepo.list())
   ipcMain.handle(IPC_CHANNELS.SERVERS_SAVE, (_e, server: ServerConfig) => serversRepo.save(server))
   ipcMain.handle(IPC_CHANNELS.SERVERS_DELETE, (_e, id: string) => serversRepo.delete(id))
+  ipcMain.handle(IPC_CHANNELS.SERVERS_SET_DEFAULT, (_e, id: string) => serversRepo.setDefault(id))
   ipcMain.handle(IPC_CHANNELS.SERVERS_TEST, async (_e, server: ServerConfig) => {
-    const client = new SimotelApiClient(server, {
-      onLog: (level, message, meta) =>
-        logsRepo.add({ category: 'api', level, message, meta })
+    const resolved = resolveServerSecrets(server)
+    const client = new SimotelApiClient(resolved, {
+      onLog: (level, message, meta) => logsRepo.add({ category: 'api', level, message, meta })
     })
     const result = await client.ping()
+    if (server.id) serversRepo.updateHealth(server.id, 'healthy')
     return { ok: true, result }
   })
 
-  // Auth
+  ipcMain.handle(IPC_CHANNELS.USERS_LIST, () => appUsersRepo.list())
+  ipcMain.handle(IPC_CHANNELS.USERS_SAVE, (_e, user) => appUsersRepo.save(user))
+  ipcMain.handle(IPC_CHANNELS.USERS_DELETE, (_e, id: string) => {
+    if (session?.role !== 'admin') throw new Error('Admin only')
+    appUsersRepo.delete(id)
+  })
+
   ipcMain.handle(
     IPC_CHANNELS.AUTH_LOGIN,
     async (
       _e,
-      payload: { serverId: string; extension: string; name?: string }
+      payload: {
+        serverId: string
+        extension?: string
+        name?: string
+        username?: string
+        password?: string
+      }
     ) => {
-      const server = serversRepo.get(payload.serverId)
-      if (!server) throw new Error('Server not found')
+      const serverRow = serversRepo.get(payload.serverId)
+      if (!serverRow) throw new Error('Server not found')
+      const server = resolveServerSecrets(serverRow)
+
+      let appUser: AppUser | null = null
+      if (payload.username && payload.password) {
+        appUser = appUsersRepo.authenticate(payload.username, payload.password)
+        if (!appUser) throw new Error('Invalid username or password')
+      }
+
+      const extension = payload.extension || appUser?.extension
+      if (!extension) throw new Error('Extension required')
 
       apiClient = new SimotelApiClient(server, {
-        onLog: (level, message, meta) =>
-          logsRepo.add({ category: 'api', level, message, meta }),
+        timeoutMs: server.timeoutMs,
+        maxRetries: server.reconnectPolicy?.maxRetries ?? 3,
+        onLog: (level, message, meta) => logsRepo.add({ category: 'api', level, message, meta }),
         cacheGet: (key) => cacheRepo.get(key),
         cacheSet: (key, value, ttl) => cacheRepo.set(key, value, ttl)
       })
 
       await apiClient.ping()
+      serversRepo.updateHealth(server.id, 'healthy')
 
       const user = usersRepo.save({
         id: uuid(),
         serverId: server.id,
-        extension: payload.extension,
-        name: payload.name ?? payload.extension,
-        number: payload.extension,
+        extension,
+        name: payload.name ?? appUser?.fullName ?? extension,
+        number: extension,
         status: 'ready',
-        statusChangedAt: new Date().toISOString()
+        statusChangedAt: new Date().toISOString(),
+        role: appUser?.role ?? 'agent'
       })
 
       session = {
         serverId: server.id,
-        extension: payload.extension,
-        name: user.name
+        extension,
+        name: user.name,
+        role: appUser?.role ?? 'agent',
+        userId: appUser?.id,
+        username: appUser?.username ?? payload.username
       }
 
       const settings = settingsRepo.get()
-      ctx.callService.setApi(
-        apiClient,
-        payload.extension,
-        settings.originateContext
-      )
+      if (settings.rememberLastUser) {
+        await rememberSession({
+          lastServerId: server.id,
+          lastUsername: session.username,
+          lastExtension: extension
+        })
+        settingsRepo.set({
+          lastUsername: session.username,
+          defaultServerId: server.id,
+          defaultExtension: extension
+        })
+      }
+
+      ctx.callService.setApi(apiClient, extension, settings.originateContext)
 
       realtime?.stop()
+      webhook?.stop()
+
+      webhook = new EventWebhookServer(settings.eventWebhookPort)
+      await webhook.start()
+
       realtime = new RealtimeEngine({
         baseUrl: server.baseUrl,
         apiKey: server.apiKey,
+        preferredProtocols: ['websocket', 'sse', 'long_polling', 'smart_polling'],
         pollFn: async () => [],
         onLog: (level, message, meta) =>
           logsRepo.add({ category: 'realtime', level, message, meta })
       })
-      realtime.on('event', (event) => {
-        ctx.callService.handleRealtimeEvent(event)
-        for (const win of BrowserWindow.getAllWindows()) {
-          win.webContents.send(IPC_CHANNELS.REALTIME_EVENT, event)
-        }
-      })
-      realtime.on('state', (state) => {
-        for (const win of BrowserWindow.getAllWindows()) {
-          win.webContents.send(IPC_CHANNELS.CONNECTION_STATUS, {
-            state,
-            protocol: realtime?.getStatus().protocol
-          })
-        }
-        if (state === 'reconnecting' || state === 'disconnected') {
-          notificationsRepo.add({
-            type: 'connection_lost',
-            title: 'Connection',
-            body: 'Connection lost — reconnecting…'
-          })
-        }
-        if (state === 'connected') {
-          notificationsRepo.add({
-            type: 'reconnect_success',
-            title: 'Connection',
-            body: 'Connected to Simotel'
-          })
-        }
-      })
+      wireRealtimeEvents()
       await realtime.start()
 
       logsRepo.add({
         category: 'authentication',
         level: 'info',
-        message: `Logged in as ${payload.extension}`,
-        meta: { serverId: server.id }
+        message: `Logged in as ${extension}`,
+        meta: {
+          serverId: server.id,
+          role: session.role,
+          webhookPort: webhook.getPort()
+        }
       })
 
-      return { user, server, connection: realtime.getStatus() }
+      return {
+        user,
+        server: serversRepo.get(server.id),
+        session,
+        appUser,
+        connection: {
+          ...realtime.getStatus(),
+          webhookPort: webhook.getPort()
+        },
+        remembered: await readRememberedSession()
+      }
     }
   )
 
   ipcMain.handle(IPC_CHANNELS.AUTH_LOGOUT, () => {
     realtime?.stop()
+    webhook?.stop()
     realtime = null
+    webhook = null
     apiClient = null
     session = null
     ctx.callService.setApi(null, '', 'outgoing_context')
     return true
   })
 
-  ipcMain.handle(IPC_CHANNELS.AUTH_STATUS, () => ({
+  ipcMain.handle(IPC_CHANNELS.AUTH_STATUS, async () => ({
     session,
-    connection: realtime?.getStatus() ?? { state: 'disconnected', protocol: null }
+    connection: realtime?.getStatus() ?? { state: 'disconnected', protocol: null },
+    remembered: await readRememberedSession(),
+    webhookPort: webhook?.getPort()
   }))
 
-  // Settings
   ipcMain.handle(IPC_CHANNELS.SETTINGS_GET, () => settingsRepo.get())
   ipcMain.handle(IPC_CHANNELS.SETTINGS_SET, (_e, partial) => settingsRepo.set(partial))
 
-  // Contacts
   ipcMain.handle(IPC_CHANNELS.CONTACTS_LIST, () => contactsRepo.list())
   ipcMain.handle(IPC_CHANNELS.CONTACTS_SAVE, (_e, contact: Contact) => contactsRepo.save(contact))
   ipcMain.handle(IPC_CHANNELS.CONTACTS_DELETE, (_e, id: string) => contactsRepo.delete(id))
@@ -191,8 +255,7 @@ export function registerIpcHandlers(ctx: IpcContext): void {
     if (result.canceled || !result.filePaths[0]) return { imported: 0 }
     const raw = readFileSync(result.filePaths[0], 'utf8')
     const contacts = parseContactsCsv(raw)
-    const imported = contactsRepo.importMany(contacts)
-    return { imported }
+    return { imported: contactsRepo.importMany(contacts) }
   })
   ipcMain.handle(IPC_CHANNELS.CONTACTS_EXPORT_CSV, async () => {
     const win = ctx.getMainWindow()
@@ -201,18 +264,20 @@ export function registerIpcHandlers(ctx: IpcContext): void {
       filters: [{ name: 'CSV', extensions: ['csv'] }]
     })
     if (result.canceled || !result.filePath) return { ok: false }
-    const csv = contactsToCsv(contactsRepo.list())
-    writeFileSync(result.filePath, csv, 'utf8')
+    writeFileSync(result.filePath, contactsToCsv(contactsRepo.list()), 'utf8')
     return { ok: true, path: result.filePath }
   })
 
-  // Calls
   ipcMain.handle(IPC_CHANNELS.CALL_ORIGINATE, (_e, number: string, trunk?: string) =>
     ctx.callService.originate(number, trunk)
   )
   ipcMain.handle(IPC_CHANNELS.CALL_ANSWER, () => ctx.callService.answer())
   ipcMain.handle(IPC_CHANNELS.CALL_REJECT, () => ctx.callService.reject())
   ipcMain.handle(IPC_CHANNELS.CALL_MUTE, (_e, muted?: boolean) => ctx.callService.mute(muted))
+  ipcMain.handle(IPC_CHANNELS.CALL_HOLD, (_e, held?: boolean) => ctx.callService.hold(held))
+  ipcMain.handle(IPC_CHANNELS.CALL_RECORD, (_e, enabled?: boolean) =>
+    ctx.callService.record(enabled)
+  )
   ipcMain.handle(IPC_CHANNELS.CALL_TRANSFER, (_e, target: string) =>
     ctx.callService.transfer(target)
   )
@@ -226,18 +291,71 @@ export function registerIpcHandlers(ctx: IpcContext): void {
       filters: [{ name: format.toUpperCase(), extensions: [ext] }]
     })
     if (result.canceled || !result.filePath) return { ok: false }
-    const rows = callHistoryRepo.allForExport()
-    // Excel/PDF export as CSV-compatible tabular text for portability; PDF is text dump.
-    const csv = historyToCsv(rows)
-    writeFileSync(result.filePath, csv, 'utf8')
+    writeFileSync(result.filePath, historyToCsv(callHistoryRepo.allForExport()), 'utf8')
     return { ok: true, path: result.filePath, format }
   })
 
-  // Queues
+  ipcMain.handle(IPC_CHANNELS.DASHBOARD_STATS, async (): Promise<DashboardStats> => {
+    const history = callHistoryRepo.list({ start: 0, count: 500 })
+    const today = new Date().toISOString().slice(0, 10)
+    const todays = history.items.filter((h) => h.startedAt.startsWith(today))
+    const answered = todays.filter((h) => h.disposition === 'ended' || h.durationSec > 0)
+    const missed = todays.filter((h) => h.disposition === 'missed')
+    const talk = answered.reduce((s, h) => s + h.durationSec, 0)
+    const queues = apiClient ? normalizeQueues(await apiClient.searchQueues()) : []
+    const waiting = queues.reduce((s, q) => s + q.waitingCallers, 0)
+
+    const hours = Array.from({ length: 24 }, (_, hour) => {
+      const label = `${String(hour).padStart(2, '0')}:00`
+      const bucket = todays.filter((h) => new Date(h.startedAt).getHours() === hour)
+      return {
+        hour: label,
+        total: bucket.length,
+        answered: bucket.filter((h) => h.disposition !== 'missed').length,
+        missed: bucket.filter((h) => h.disposition === 'missed').length
+      }
+    })
+
+    return {
+      currentCalls: ctx.callService.getActive() ? 1 : 0,
+      waitingCalls: waiting,
+      answeredToday: answered.length,
+      missedCalls: missed.length,
+      abandonedCalls: queues.reduce((s, q) => s + q.abandoned, 0),
+      averageTalkTimeSec: answered.length ? Math.round(talk / answered.length) : 0,
+      averageWaitingTimeSec: queues.length
+        ? Math.round(queues.reduce((s, q) => s + q.longestWaitSec, 0) / queues.length)
+        : 0,
+      averageRingTimeSec: 0,
+      longestCallSec: todays.reduce((m, h) => Math.max(m, h.durationSec), 0),
+      currentQueue: queues[0]?.name,
+      loggedAgents: 1,
+      busyAgents: ctx.callService.getActive() ? 1 : 0,
+      availableAgents: ctx.callService.getActive() ? 0 : 1,
+      offlineAgents: 0,
+      connectionHealth:
+        (realtime?.getStatus().state as DashboardStats['connectionHealth']) ?? 'disconnected',
+      serverStatus: serversRepo.getDefault()?.health ?? 'unknown',
+      callsPerHour: hours,
+      queuePerformance: queues.map((q) => ({
+        name: q.name,
+        answered: q.answered,
+        abandoned: q.abandoned,
+        waiting: q.waitingCallers
+      })),
+      agentPerformance: [
+        {
+          name: session?.name ?? 'Agent',
+          answered: answered.length,
+          talkSec: talk
+        }
+      ]
+    }
+  })
+
   ipcMain.handle(IPC_CHANNELS.QUEUES_LIST, async () => {
     if (!apiClient) return []
-    const raw = await apiClient.searchQueues()
-    return normalizeQueues(raw)
+    return normalizeQueues(await apiClient.searchQueues())
   })
   ipcMain.handle(IPC_CHANNELS.QUEUES_JOIN, async (_e, queue: string) => {
     if (!apiClient || !session) throw new Error('Not authenticated')
@@ -256,27 +374,27 @@ export function registerIpcHandlers(ctx: IpcContext): void {
     return apiClient.resumeQueueAgent(queue, session.extension)
   })
 
-  // Agent status (local + optional queue pause)
   ipcMain.handle(IPC_CHANNELS.AGENT_STATUS_GET, () => {
     if (!session) return null
     return usersRepo.getByServer(session.serverId)
   })
-  ipcMain.handle(
-    IPC_CHANNELS.AGENT_STATUS_SET,
-    (_e, status: string, label?: string) => {
-      if (!session) throw new Error('Not authenticated')
-      const existing = usersRepo.getByServer(session.serverId)
-      if (!existing) throw new Error('User not found')
-      return usersRepo.save({
-        ...existing,
-        status: status as never,
-        customStatusLabel: label,
-        statusChangedAt: new Date().toISOString()
-      })
-    }
-  )
+  ipcMain.handle(IPC_CHANNELS.AGENT_STATUS_SET, (_e, status: string, label?: string) => {
+    if (!session) throw new Error('Not authenticated')
+    const existing = usersRepo.getByServer(session.serverId)
+    if (!existing) throw new Error('User not found')
+    return usersRepo.save({
+      ...existing,
+      status: status as never,
+      customStatusLabel: label,
+      statusChangedAt: new Date().toISOString()
+    })
+  })
+  ipcMain.handle(IPC_CHANNELS.AGENT_STATUS_HISTORY, () => {
+    return openDatabase()
+      .prepare(`SELECT * FROM agent_status_history ORDER BY started_at DESC LIMIT 100`)
+      .all()
+  })
 
-  // Recordings
   ipcMain.handle(IPC_CHANNELS.RECORDINGS_LIST, async (_e, opts) => {
     const history = callHistoryRepo.list({ ...opts, count: opts?.count ?? 100 })
     return history.items
@@ -295,16 +413,19 @@ export function registerIpcHandlers(ctx: IpcContext): void {
     return apiClient.downloadRecording(file)
   })
 
-  // Realtime / connection
-  ipcMain.handle(IPC_CHANNELS.REALTIME_STATUS, () => realtime?.getStatus() ?? { state: 'disconnected', protocol: null })
-  ipcMain.handle(IPC_CHANNELS.CONNECTION_STATUS, () => realtime?.getStatus() ?? { state: 'disconnected', protocol: null })
+  ipcMain.handle(
+    IPC_CHANNELS.REALTIME_STATUS,
+    () => realtime?.getStatus() ?? { state: 'disconnected', protocol: null }
+  )
+  ipcMain.handle(
+    IPC_CHANNELS.CONNECTION_STATUS,
+    () => realtime?.getStatus() ?? { state: 'disconnected', protocol: null }
+  )
 
-  // Notifications
   ipcMain.handle(IPC_CHANNELS.NOTIFY_LIST, () => notificationsRepo.list())
   ipcMain.handle(IPC_CHANNELS.NOTIFY_MARK_READ, (_e, id: string) => notificationsRepo.markRead(id))
   ipcMain.handle(IPC_CHANNELS.NOTIFY_SHOW, (_e, payload) => notificationsRepo.add(payload))
 
-  // Logs
   ipcMain.handle(IPC_CHANNELS.LOGS_LIST, (_e, opts) => logsRepo.list(opts ?? {}))
   ipcMain.handle(IPC_CHANNELS.LOGS_CLEAR, (_e, category?: string) => logsRepo.clear(category))
   ipcMain.handle(IPC_CHANNELS.LOGS_EXPORT, async () => {
@@ -318,13 +439,11 @@ export function registerIpcHandlers(ctx: IpcContext): void {
     return { ok: true, path: result.filePath }
   })
 
-  // Updater
   ipcMain.handle(IPC_CHANNELS.UPDATER_CHECK, () => checkForUpdates())
   ipcMain.handle(IPC_CHANNELS.UPDATER_DOWNLOAD, () => downloadUpdate())
   ipcMain.handle(IPC_CHANNELS.UPDATER_INSTALL, () => installUpdate())
   ipcMain.handle(IPC_CHANNELS.UPDATER_STATUS, () => getUpdaterStatus())
 
-  // Backup
   ipcMain.handle(IPC_CHANNELS.BACKUP_CREATE, async () => {
     const win = ctx.getMainWindow()
     const result = await dialog.showSaveDialog(win!, {
@@ -407,9 +526,7 @@ function contactsToCsv(contacts: Contact[]): string {
   return [header, ...rows].join('\n')
 }
 
-function historyToCsv(
-  rows: ReturnType<typeof callHistoryRepo.allForExport>
-): string {
+function historyToCsv(rows: ReturnType<typeof callHistoryRepo.allForExport>): string {
   const header =
     'started_at,phone_number,contact_name,company,queue,agent,direction,disposition,duration_sec,recording_file'
   const lines = rows.map((r) =>
@@ -446,7 +563,11 @@ function normalizeQueues(raw: unknown): Array<{
   joined: boolean
 }> {
   const data = raw as { data?: unknown[] } | unknown[]
-  const list = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : []
+  const list = Array.isArray(data)
+    ? data
+    : Array.isArray((data as { data?: unknown[] })?.data)
+      ? (data as { data: unknown[] }).data
+      : []
   return list.map((item, i) => {
     const q = item as Record<string, unknown>
     const number = String(q.number ?? q.queue ?? i)

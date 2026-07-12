@@ -7,6 +7,7 @@ import type {
   QueueInfo,
   RealtimeProtocol,
   ServerConfig,
+  SessionInfo,
   UserProfile
 } from '@shared/types'
 import { DEFAULT_SETTINGS } from '@shared/constants'
@@ -15,7 +16,7 @@ interface AppState {
   ready: boolean
   settings: AppSettings
   servers: ServerConfig[]
-  session: { serverId: string; extension: string; name: string } | null
+  session: SessionInfo | null
   user: UserProfile | null
   connection: { state: ConnectionState; protocol: RealtimeProtocol | null }
   activeCall: ActiveCall | null
@@ -26,7 +27,7 @@ interface AppState {
   setReady: (v: boolean) => void
   setSettings: (s: AppSettings) => void
   setServers: (s: ServerConfig[]) => void
-  setSession: (s: AppState['session']) => void
+  setSession: (s: SessionInfo | null) => void
   setUser: (u: UserProfile | null) => void
   setConnection: (c: AppState['connection']) => void
   setActiveCall: (c: ActiveCall | null) => void
@@ -59,7 +60,6 @@ export const useAppStore = create<AppState>((set) => ({
   setContacts: (contacts) => set({ contacts }),
   setQueues: (queues) => set({ queues }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
-  showToast: (message, tone = 'info') =>
-    set({ toast: { id: String(Date.now()), message, tone } }),
+  showToast: (message, tone = 'info') => set({ toast: { id: String(Date.now()), message, tone } }),
   clearToast: () => set({ toast: null })
 }))

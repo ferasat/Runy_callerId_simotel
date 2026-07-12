@@ -1,5 +1,10 @@
 import { contactSchema, loginSchema, originateSchema, serverSchema } from '../validation/schemas'
-import { callRepository, contactsRepository, queuesRepository, serversRepository } from '../repositories'
+import {
+  callRepository,
+  contactsRepository,
+  queuesRepository,
+  serversRepository
+} from '../repositories'
 import type { Contact, ServerConfig } from '@shared/types'
 
 /**
@@ -8,15 +13,11 @@ import type { Contact, ServerConfig } from '@shared/types'
  */
 
 export const authService = {
-  async login(input: { serverId: string; extension: string; name?: string }) {
+  async login(input: unknown) {
     const parsed = loginSchema.parse(input)
-    return apiLogin(parsed)
+    const { api } = await import('../client/bridge')
+    return api.bridge.auth.login(parsed)
   }
-}
-
-async function apiLogin(parsed: { serverId: string; extension: string; name?: string }) {
-  const { api } = await import('../client/bridge')
-  return api.bridge.auth.login(parsed)
 }
 
 export const serverService = {
@@ -27,9 +28,12 @@ export const serverService = {
       name: parsed.name,
       baseUrl: parsed.baseUrl,
       apiPath: parsed.apiPath,
-      apiKey: parsed.apiKey,
+      apiAuth: parsed.apiAuth,
+      apiKey: parsed.apiKey ?? '',
       username: parsed.username,
       password: parsed.password,
+      timeoutMs: parsed.timeoutMs,
+      reconnectPolicy: { enabled: true, maxRetries: 8, baseDelayMs: 1000 },
       isDefault: parsed.isDefault,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()

@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
-import { PhoneOff, Phone, MicOff, ArrowRightLeft } from 'lucide-react'
+import { ArrowRightLeft, Copy, Mic, MicOff, Pause, Phone, PhoneOff, UserRound } from 'lucide-react'
 import { api } from '@/api/client/bridge'
-import type { ActiveCall } from '@shared/types'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import type { ActiveCall, Contact } from '@shared/types'
 
 export function CallerPopupPage() {
   const [call, setCall] = useState<ActiveCall | null>(null)
   const [transferTo, setTransferTo] = useState('')
+  const [contact, setContact] = useState<Contact | null>(null)
 
   useEffect(() => {
     void api.bridge.call.active().then(setCall)
@@ -13,71 +16,111 @@ export function CallerPopupPage() {
     return off
   }, [])
 
+  useEffect(() => {
+    if (!call?.phoneNumber) return
+    let cancelled = false
+    void api.bridge.contacts.search(call.phoneNumber).then((list) => {
+      if (!cancelled) setContact(list[0] ?? null)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [call?.phoneNumber])
+
   if (!call) {
     return (
-      <div className="popup-shell">
-        <div className="empty">Waiting for incoming call…</div>
+      <div className="flex h-full flex-col bg-gradient-to-b from-[#132033] to-[#0b1220] p-5">
+        <div className="py-16 text-center text-[var(--color-muted)]">
+          Waiting for incoming call…
+        </div>
       </div>
     )
   }
 
-  const initial = (call.callerName ?? call.phoneNumber).slice(0, 1).toUpperCase()
+  const name = call.callerName ?? contact?.name ?? 'Unknown caller'
+  const company = call.company ?? contact?.company
+  const initial = name.slice(0, 1).toUpperCase()
 
   return (
-    <div className="popup-shell">
-      <div className="muted" style={{ textAlign: 'center', marginBottom: 8 }}>
+    <div className="flex h-full flex-col bg-gradient-to-b from-[#132033] to-[#0b1220] p-5">
+      <div className="mb-2 text-center text-sm text-[var(--color-muted)]">
         {call.direction === 'inbound' ? 'Incoming Call' : 'Active Call'}
       </div>
-      <div className="avatar">{initial}</div>
-      <div style={{ textAlign: 'center' }}>
-        <h1 style={{ margin: '0 0 4px', fontSize: '1.35rem' }}>{call.phoneNumber}</h1>
-        <div style={{ fontSize: '1.05rem' }}>{call.callerName ?? 'Unknown caller'}</div>
-        <div className="muted" style={{ marginTop: 6 }}>
-          {[call.company, call.queue].filter(Boolean).join(' · ') || call.state}
+      <div className="mx-auto mb-4 grid h-[72px] w-[72px] place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-2)] text-2xl font-bold text-[#041016] [animation:pulse-soft_1.8s_ease_infinite]">
+        {initial}
+      </div>
+      <div className="text-center">
+        <h1 className="m-0 text-[1.35rem] font-semibold">{call.phoneNumber}</h1>
+        <div className="mt-1 text-base">{name}</div>
+        <div className="mt-1.5 text-sm text-[var(--color-muted)]">
+          {[company, call.queue, call.extension].filter(Boolean).join(' · ') || call.state}
         </div>
+        {call.uniqueId && (
+          <div className="mt-1 text-xs text-[var(--color-muted)]">ID {call.uniqueId}</div>
+        )}
       </div>
 
-      <div className="row" style={{ justifyContent: 'center', marginTop: 28, flexWrap: 'wrap' }}>
-        {call.state === 'ringing' && (
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
+        {call.state === 'ringing' ? (
           <>
-            <button type="button" className="btn btn-primary" onClick={() => void api.bridge.call.answer()}>
+            <Button variant="primary" onClick={() => void api.bridge.call.answer()}>
               <Phone size={16} /> Answer
-            </button>
-            <button type="button" className="btn btn-danger" onClick={() => void api.bridge.call.reject()}>
+            </Button>
+            <Button variant="danger" onClick={() => void api.bridge.call.reject()}>
               <PhoneOff size={16} /> Reject
-            </button>
+            </Button>
           </>
-        )}
-        {call.state !== 'ringing' && (
+        ) : (
           <>
-            <button type="button" className="btn" onClick={() => void api.bridge.call.mute()}>
-              <MicOff size={16} /> {call.muted ? 'Unmute' : 'Mute'}
-            </button>
-            <button type="button" className="btn btn-danger" onClick={() => void api.bridge.call.reject()}>
+            <Button onClick={() => void api.bridge.call.mute()}>
+              {call.muted ? <Mic size={16} /> : <MicOff size={16} />}
+              {call.muted ? 'Unmute' : 'Mute'}
+            </Button>
+            <Button onClick={() => void api.bridge.call.hold()}>
+              <Pause size={16} /> {call.held ? 'Resume' : 'Hold'}
+            </Button>
+            <Button onClick={() => void api.bridge.call.record()}>
+              <Mic size={16} /> {call.recording ? 'Stop Rec' : 'Record'}
+            </Button>
+            <Button variant="danger" onClick={() => void api.bridge.call.reject()}>
               <PhoneOff size={16} /> Hang up
-            </button>
+            </Button>
           </>
         )}
       </div>
 
-      <div className="stack" style={{ marginTop: 20 }}>
-        <input
-          className="input"
+      <div className="mt-5 flex flex-col gap-2">
+        <div className="flex gap-2">
+          <Button
+            className="flex-1"
+            onClick={() => void navigator.clipboard.writeText(call.phoneNumber)}
+          >
+            <Copy size={14} /> Copy Number
+          </Button>
+          <Button
+            className="flex-1"
+            onClick={() => {
+              if (contact) window.location.hash = '#/contacts'
+              else void api.bridge.window.hidePopup()
+            }}
+          >
+            <UserRound size={14} /> Open Contact
+          </Button>
+        </div>
+        <Input
           placeholder="Transfer to extension / number"
           value={transferTo}
           onChange={(e) => setTransferTo(e.target.value)}
         />
-        <button
-          type="button"
-          className="btn"
+        <Button
           disabled={!transferTo.trim()}
           onClick={() => void api.bridge.call.transfer(transferTo.trim())}
         >
           <ArrowRightLeft size={16} /> Transfer
-        </button>
-        <button type="button" className="btn btn-ghost" onClick={() => void api.bridge.window.hidePopup()}>
+        </Button>
+        <Button variant="ghost" onClick={() => void api.bridge.window.hidePopup()}>
           Hide
-        </button>
+        </Button>
       </div>
     </div>
   )

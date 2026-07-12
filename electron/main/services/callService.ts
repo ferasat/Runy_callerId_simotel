@@ -1,4 +1,4 @@
-import { BrowserWindow, Notification, app, nativeImage, shell } from 'electron'
+import { BrowserWindow, Notification, app, shell } from 'electron'
 import { join } from 'path'
 import { v4 as uuid } from 'uuid'
 import type { ActiveCall, NotificationPayload } from '../../../shared/types'
@@ -60,6 +60,7 @@ export class CallService {
       startedAt: new Date().toISOString(),
       muted: false,
       recording: false,
+      held: false,
       durationSec: 0
     }
     this.broadcastActive()
@@ -90,9 +91,48 @@ export class CallService {
 
   mute(muted?: boolean): ActiveCall | null {
     if (!this.active) return null
-    this.active = { ...this.active, muted: muted ?? !this.active.muted, state: 'muted' }
-    if (!this.active.muted) this.active.state = 'answered'
+    const nextMuted = muted ?? !this.active.muted
+    this.active = {
+      ...this.active,
+      muted: nextMuted,
+      state: nextMuted ? 'muted' : this.active.held ? 'held' : 'answered'
+    }
     this.broadcastActive()
+    return this.active
+  }
+
+  hold(held?: boolean): ActiveCall | null {
+    if (!this.active) return null
+    const nextHeld = held ?? !this.active.held
+    this.active = {
+      ...this.active,
+      held: nextHeld,
+      state: nextHeld ? 'held' : this.active.muted ? 'muted' : 'answered'
+    }
+    this.broadcastActive()
+    logsRepo.add({
+      category: 'call',
+      level: 'info',
+      message: nextHeld ? 'Call held' : 'Call resumed',
+      meta: { callId: this.active.id }
+    })
+    return this.active
+  }
+
+  record(enabled?: boolean): ActiveCall | null {
+    if (!this.active) return null
+    const recording = enabled ?? !this.active.recording
+    this.active = {
+      ...this.active,
+      recording,
+      state: recording ? 'recording' : this.active.held ? 'held' : 'answered'
+    }
+    this.broadcastActive()
+    this.notify({
+      type: recording ? 'recording_started' : 'recording_finished',
+      title: 'Recording',
+      body: recording ? 'Recording started' : 'Recording stopped'
+    })
     return this.active
   }
 
@@ -137,6 +177,7 @@ export class CallService {
         startedAt: new Date().toISOString(),
         muted: false,
         recording: false,
+        held: false,
         durationSec: 0
       }
       this.broadcastActive()
@@ -252,7 +293,7 @@ export function createMainWindow(): BrowserWindow {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: true
     }
   })
 
@@ -277,7 +318,7 @@ export function createMainWindow(): BrowserWindow {
 export function createPopupWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 380,
-    height: 520,
+    height: 560,
     show: false,
     frame: false,
     resizable: false,
@@ -289,7 +330,7 @@ export function createPopupWindow(): BrowserWindow {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: true
     }
   })
 

@@ -4,7 +4,9 @@ import type {
   ActiveCall,
   AgentStatus,
   AppSettings,
+  AppUser,
   Contact,
+  DashboardStats,
   NotificationPayload,
   ServerConfig
 } from '../../shared/types'
@@ -21,11 +23,22 @@ const api = {
     list: () => ipcRenderer.invoke(IPC_CHANNELS.SERVERS_LIST) as Promise<ServerConfig[]>,
     save: (server: ServerConfig) => ipcRenderer.invoke(IPC_CHANNELS.SERVERS_SAVE, server),
     delete: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.SERVERS_DELETE, id),
-    test: (server: ServerConfig) => ipcRenderer.invoke(IPC_CHANNELS.SERVERS_TEST, server)
+    test: (server: ServerConfig) => ipcRenderer.invoke(IPC_CHANNELS.SERVERS_TEST, server),
+    setDefault: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.SERVERS_SET_DEFAULT, id)
+  },
+  users: {
+    list: () => ipcRenderer.invoke(IPC_CHANNELS.USERS_LIST) as Promise<AppUser[]>,
+    save: (user: unknown) => ipcRenderer.invoke(IPC_CHANNELS.USERS_SAVE, user),
+    delete: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.USERS_DELETE, id)
   },
   auth: {
-    login: (payload: { serverId: string; extension: string; name?: string }) =>
-      ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOGIN, payload),
+    login: (payload: {
+      serverId: string
+      extension?: string
+      name?: string
+      username?: string
+      password?: string
+    }) => ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOGIN, payload),
     logout: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOGOUT),
     status: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_STATUS)
   },
@@ -37,7 +50,8 @@ const api = {
     list: () => ipcRenderer.invoke(IPC_CHANNELS.CONTACTS_LIST) as Promise<Contact[]>,
     save: (contact: Contact) => ipcRenderer.invoke(IPC_CHANNELS.CONTACTS_SAVE, contact),
     delete: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.CONTACTS_DELETE, id),
-    search: (q: string) => ipcRenderer.invoke(IPC_CHANNELS.CONTACTS_SEARCH, q) as Promise<Contact[]>,
+    search: (q: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.CONTACTS_SEARCH, q) as Promise<Contact[]>,
     favorites: () => ipcRenderer.invoke(IPC_CHANNELS.CONTACTS_FAVORITES) as Promise<Contact[]>,
     groups: () => ipcRenderer.invoke(IPC_CHANNELS.CONTACTS_GROUPS),
     importCsv: () => ipcRenderer.invoke(IPC_CHANNELS.CONTACTS_IMPORT_CSV),
@@ -49,6 +63,8 @@ const api = {
     answer: () => ipcRenderer.invoke(IPC_CHANNELS.CALL_ANSWER),
     reject: () => ipcRenderer.invoke(IPC_CHANNELS.CALL_REJECT),
     mute: (muted?: boolean) => ipcRenderer.invoke(IPC_CHANNELS.CALL_MUTE, muted),
+    hold: (held?: boolean) => ipcRenderer.invoke(IPC_CHANNELS.CALL_HOLD, held),
+    record: (enabled?: boolean) => ipcRenderer.invoke(IPC_CHANNELS.CALL_RECORD, enabled),
     transfer: (target: string) => ipcRenderer.invoke(IPC_CHANNELS.CALL_TRANSFER, target),
     active: () => ipcRenderer.invoke(IPC_CHANNELS.CALL_ACTIVE) as Promise<ActiveCall | null>,
     history: (opts?: Record<string, unknown>) =>
@@ -63,6 +79,9 @@ const api = {
       }
     }
   },
+  dashboard: {
+    stats: () => ipcRenderer.invoke(IPC_CHANNELS.DASHBOARD_STATS) as Promise<DashboardStats>
+  },
   queues: {
     list: () => ipcRenderer.invoke(IPC_CHANNELS.QUEUES_LIST),
     join: (queue: string) => ipcRenderer.invoke(IPC_CHANNELS.QUEUES_JOIN, queue),
@@ -73,7 +92,8 @@ const api = {
   agent: {
     getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.AGENT_STATUS_GET),
     setStatus: (status: AgentStatus, label?: string) =>
-      ipcRenderer.invoke(IPC_CHANNELS.AGENT_STATUS_SET, status, label)
+      ipcRenderer.invoke(IPC_CHANNELS.AGENT_STATUS_SET, status, label),
+    statusHistory: () => ipcRenderer.invoke(IPC_CHANNELS.AGENT_STATUS_HISTORY)
   },
   recordings: {
     list: (opts?: Record<string, unknown>) =>

@@ -1,42 +1,25 @@
-# Simotel Desktop Softphone
+# Simotel Softphone
 
-Production-ready Electron + React CTI softphone for **Simotel** call centers.
+Production-ready **Electron + React** CTI softphone for Simotel call centers.
 
-## Features
+Built against official references:
 
-- Caller ID popup (number, name, company, queue, avatar)
-- Answer / Reject / Mute / Transfer
-- Click-to-call via Simotel `call/originate/act`
-- Local contacts (CSV import/export, favorites, tags, notes, groups)
-- Queue management (join / leave / pause / resume, waiting callers)
-- Call history with pagination, filtering, sorting, export
-- Recordings browser (play / download when Simotel provides audio)
-- Agent status (Ready, Busy, Break, Lunch, Meeting, ACW, Offline, Custom)
-- Realtime engine with protocol auto-detection (WebSocket → SSE → polling)
-- System tray, desktop notifications, auto-update, offline queue, SQLite cache
+- [nasimtel/simotel-api-postman (local-simotel)](https://github.com/nasimtel/simotel-api-postman/tree/main/local-simotel)
+- [nasimtel/simotel-laravel-connect](https://github.com/nasimtel/simotel-laravel-connect)
 
-## Architecture
+## Highlights
 
-```
-electron/main     Native process: SQLite, IPC, tray, updater, Simotel API, realtime
-electron/preload  Context-isolated bridge (`window.simotel`)
-src/              React renderer (dashboard, contacts, queues, history, settings)
-shared/           Types & IPC channel constants shared by both processes
-```
-
-API layer (renderer): **DTO → Validation (Zod) → Repository → Service → UI**
+- Auth modes: **basic / token / both** (encrypted credential storage via `safeStorage`)
+- Event API webhook listener + realtime fallback ladder (WS → SSE → polling)
+- Admin / Agent roles, multi-server support, health indicators
+- Caller popup (Answer / Reject / Hold / Mute / Transfer / Record / Copy / Open Contact)
+- Dashboard widgets + Recharts live charts (React Query refresh)
+- Contacts, queues, history export, recordings, tray, updater, offline queue
+- Tailwind CSS + shadcn-style UI primitives, React Hook Form + Zod
 
 ## Stack
 
-| Layer | Tech |
-|-------|------|
-| Desktop | Electron 34 |
-| UI | React 19 + TypeScript + Vite |
-| State | Zustand |
-| DB | better-sqlite3 (WAL) |
-| Validation | Zod |
-| Packaging | electron-builder (NSIS + portable) |
-| Tests | Vitest |
+Electron · TypeScript · React · Vite · Tailwind · React Query · Axios · Zustand · better-sqlite3 · electron-store · electron-builder · Recharts · Vitest · ESLint · Prettier · Husky
 
 ## Quick start
 
@@ -45,42 +28,23 @@ npm install
 npm run dev
 ```
 
-### Build
-
-```bash
-npm run build
-npm run dist:win        # NSIS installer
-npm run dist:portable   # Portable EXE
-```
-
-### Test
+Default softphone admin: `admin` / `admin` (change immediately).
 
 ```bash
 npm test
+npm run build
+npm run dist:win
 ```
 
-## Configure a Simotel server
+## Docs
 
-1. Open the app → **Server** form
-2. Base URL: `https://your-pbx.example.com`
-3. API path: `api/v4`
-4. API key: from Simotel admin (`X-APIKEY`)
-5. **Test & Save**, then login with your extension
-
-## Environments
-
-| File | Purpose |
-|------|---------|
-| `.env.development` | Local Electron + Vite HMR |
-| `.env.testing` | Automated tests |
-| `.env.production` | Packaged builds |
-
-## Documentation
-
-- [Deployment Guide](docs/guides/DEPLOYMENT.md)
-- [Developer Documentation](docs/guides/DEVELOPER.md)
-- [API Documentation](docs/guides/API.md)
-- Simotel Postman collection: `docs/Simotel_V4_edition_3.postman_collection.json`
+| Doc              | Path                                                                 |
+| ---------------- | -------------------------------------------------------------------- |
+| Simotel research | [docs/guides/SIMOTEL_REFERENCE.md](docs/guides/SIMOTEL_REFERENCE.md) |
+| Architecture     | [docs/guides/ARCHITECTURE.md](docs/guides/ARCHITECTURE.md)           |
+| API              | [docs/guides/API.md](docs/guides/API.md)                             |
+| Developer        | [docs/guides/DEVELOPER.md](docs/guides/DEVELOPER.md)                 |
+| Deployment       | [docs/guides/DEPLOYMENT.md](docs/guides/DEPLOYMENT.md)               |
 
 ## License
 

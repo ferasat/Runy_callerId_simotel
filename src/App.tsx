@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { api } from '@/api/client/bridge'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Toast } from '@/components/common/Toast'
@@ -12,7 +13,14 @@ import { QueuesPage } from '@/features/queues/QueuesPage'
 import { RecordingsPage } from '@/features/recordings/RecordingsPage'
 import { SearchPage } from '@/features/search/SearchPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
+import { UsersAdminPage } from '@/features/users/UsersAdminPage'
 import { useAppStore } from '@/stores/appStore'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { retry: 1, staleTime: 5_000 }
+  }
+})
 
 function useBootstrap(): boolean {
   const ready = useAppStore((s) => s.ready)
@@ -98,6 +106,7 @@ function ProtectedRoutes(): ReactNode {
         <Route path="/recordings" element={<RecordingsPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        {session.role === 'admin' && <Route path="/users" element={<UsersAdminPage />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
@@ -109,23 +118,25 @@ export default function App() {
 
   if (!ready) {
     return (
-      <div className="content">
-        <div className="panel stack">
-          <div className="skeleton" style={{ height: 28, width: 220 }} />
-          <div className="skeleton" style={{ height: 14 }} />
-          <div className="skeleton" style={{ height: 14, width: '70%' }} />
+      <div className="p-6">
+        <div className="flex flex-col gap-3 rounded-xl border border-[var(--color-border)] p-4">
+          <div className="skeleton h-7 w-56" />
+          <div className="skeleton h-3.5" />
+          <div className="skeleton h-3.5 w-[70%]" />
         </div>
       </div>
     )
   }
 
   return (
-    <HashRouter>
-      <Routes>
-        <Route path="/popup" element={<CallerPopupPage />} />
-        <Route path="*" element={<ProtectedRoutes />} />
-      </Routes>
-      <Toast />
-    </HashRouter>
+    <QueryClientProvider client={queryClient}>
+      <HashRouter>
+        <Routes>
+          <Route path="/popup" element={<CallerPopupPage />} />
+          <Route path="*" element={<ProtectedRoutes />} />
+        </Routes>
+        <Toast />
+      </HashRouter>
+    </QueryClientProvider>
   )
 }

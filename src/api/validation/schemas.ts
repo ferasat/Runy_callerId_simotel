@@ -5,16 +5,20 @@ export const serverSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   baseUrl: z.string().url('Valid URL required'),
   apiPath: z.string().min(1).default('api/v4'),
-  apiKey: z.string().min(1, 'API key required'),
+  apiAuth: z.enum(['basic', 'token', 'both']).default('both'),
+  apiKey: z.string().optional().default(''),
   username: z.string().optional(),
   password: z.string().optional(),
+  timeoutMs: z.number().default(15000),
   isDefault: z.boolean().default(false)
 })
 
 export const loginSchema = z.object({
   serverId: z.string().min(1),
-  extension: z.string().min(1, 'Extension required'),
-  name: z.string().optional()
+  extension: z.string().optional(),
+  name: z.string().optional(),
+  username: z.string().optional(),
+  password: z.string().optional()
 })
 
 export const contactSchema = z.object({

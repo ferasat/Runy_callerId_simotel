@@ -14,6 +14,7 @@ import type { ConnectionState, RealtimeProtocol } from '../../../shared/types'
 
 export type RealtimeEventType =
   | 'incoming_call'
+  | 'outgoing_call'
   | 'call_answered'
   | 'call_ended'
   | 'call_missed'
@@ -36,7 +37,11 @@ export interface RealtimeEngineOptions {
   apiKey: string
   pollFn?: () => Promise<RealtimeEvent[]>
   preferredProtocols?: RealtimeProtocol[]
-  onLog?: (level: 'info' | 'warn' | 'error', message: string, meta?: Record<string, unknown>) => void
+  onLog?: (
+    level: 'info' | 'warn' | 'error',
+    message: string,
+    meta?: Record<string, unknown>
+  ) => void
 }
 
 export class RealtimeEngine extends EventEmitter {
@@ -304,17 +309,48 @@ export class RealtimeEngine extends EventEmitter {
 }
 
 export function mapSimotelEvent(data: Record<string, unknown>): RealtimeEvent {
-  const eventName = String(data.event ?? data.type ?? data.Event ?? 'raw').toLowerCase()
+  const eventName = String(data.event ?? data.type ?? data.Event ?? data.event_name ?? 'raw')
+  const normalized = eventName.toLowerCase()
   let type: RealtimeEventType = 'raw'
-  if (eventName.includes('ring') || eventName.includes('incoming')) type = 'incoming_call'
-  else if (eventName.includes('answer')) type = 'call_answered'
-  else if (eventName.includes('hangup') || eventName.includes('end')) type = 'call_ended'
-  else if (eventName.includes('miss')) type = 'call_missed'
-  else if (eventName.includes('transfer')) type = 'transfer'
-  else if (eventName.includes('record') && eventName.includes('start')) type = 'recording_started'
-  else if (eventName.includes('record')) type = 'recording_finished'
-  else if (eventName.includes('queue')) type = 'queue_update'
-  else if (eventName.includes('agent') || eventName.includes('status')) type = 'agent_status'
+
+  if (
+    eventName === 'IncomingCall' ||
+    normalized.includes('incoming') ||
+    normalized.includes('ring')
+  ) {
+    type = 'incoming_call'
+  } else if (eventName === 'OutgoingCall' || normalized.includes('outgoing')) {
+    type = 'outgoing_call' as RealtimeEventType
+  } else if (
+    eventName === 'NewState' ||
+    normalized.includes('newstate') ||
+    normalized.includes('answer')
+  ) {
+    type = normalized.includes('answer') ? 'call_answered' : 'agent_status'
+  } else if (eventName === 'Transfer' || normalized.includes('transfer')) {
+    type = 'transfer'
+  } else if (
+    eventName === 'Cdr' ||
+    eventName === 'CdrQueue' ||
+    normalized.includes('hangup') ||
+    normalized.includes('end')
+  ) {
+    type = normalized.includes('miss') ? 'call_missed' : 'call_ended'
+  } else if (normalized.includes('miss')) {
+    type = 'call_missed'
+  } else if (normalized.includes('record') && normalized.includes('start')) {
+    type = 'recording_started'
+  } else if (normalized.includes('record')) {
+    type = 'recording_finished'
+  } else if (normalized.includes('queue') || eventName === 'CdrQueue') {
+    type = 'queue_update'
+  } else if (
+    normalized.includes('agent') ||
+    normalized.includes('status') ||
+    eventName === 'ExtenAdded'
+  ) {
+    type = 'agent_status'
+  }
 
   return {
     type,

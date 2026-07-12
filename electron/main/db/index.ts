@@ -6,15 +6,25 @@ import { v4 as uuid } from 'uuid'
 import { DEFAULT_SETTINGS } from '../../../shared/constants'
 import type {
   AppSettings,
+  AppUser,
   CallHistoryEntry,
   Contact,
   ContactGroup,
   LogEntry,
   NotificationPayload,
   ServerConfig,
-  UserProfile
+  UserProfile,
+  UserRole
 } from '../../../shared/types'
-import { MIGRATIONS, SCHEMA_VERSION } from './schema'
+import { ADMIN_PERMISSIONS, AGENT_PERMISSIONS } from '../../../shared/constants'
+import {
+  createSalt,
+  decryptSecret,
+  encryptSecret,
+  hashPassword,
+  verifyPassword
+} from '../security/credentials'
+import { MIGRATIONS, SCHEMA_SQL, SCHEMA_VERSION } from './schema'
 
 let db: Database.Database | null = null
 
@@ -53,13 +63,36 @@ function migrate(database: Database.Database): void {
     );
   `)
   const row = database.prepare(`SELECT value FROM meta WHERE key = 'schema_version'`).get() as
-    | { value: string }
-    | undefined
+    { value: string } | undefined
   const current = row ? Number(row.value) : 0
+
+  // Fresh install: apply full latest schema once.
+  if (current === 0) {
+    database.exec(SCHEMA_SQL)
+    database
+      .prepare(
+        `INSERT INTO meta(key, value) VALUES('schema_version', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+      )
+      .run(String(SCHEMA_VERSION))
+    return
+  }
+
   for (let v = current + 1; v <= SCHEMA_VERSION; v += 1) {
     const sql = MIGRATIONS[v]
     if (!sql) throw new Error(`Missing migration for schema version ${v}`)
-    database.exec(sql)
+    // Additive migrations may re-add columns on partially upgraded DBs — ignore duplicates.
+    for (const stmt of sql
+      .split(';')
+      .map((s) => s.trim())
+      .filter(Boolean)) {
+      try {
+        database.exec(stmt)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        if (!/duplicate column name/i.test(message)) throw err
+      }
+    }
     database
       .prepare(
         `INSERT INTO meta(key, value) VALUES('schema_version', ?)
@@ -70,13 +103,9 @@ function migrate(database: Database.Database): void {
 }
 
 function seedDefaults(database: Database.Database): void {
-  const count = (
-    database.prepare(`SELECT COUNT(*) as c FROM settings`).get() as { c: number }
-  ).c
+  const count = (database.prepare(`SELECT COUNT(*) as c FROM settings`).get() as { c: number }).c
   if (count === 0) {
-    const insert = database.prepare(
-      `INSERT INTO settings(key, value) VALUES(?, ?)`
-    )
+    const insert = database.prepare(`INSERT INTO settings(key, value) VALUES(?, ?)`)
     const tx = database.transaction(() => {
       for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
         insert.run(key, JSON.stringify(value))
@@ -84,6 +113,7 @@ function seedDefaults(database: Database.Database): void {
     })
     tx()
   }
+  appUsersRepo.ensureBootstrapAdmin()
 }
 
 function parseJson<T>(raw: string | null | undefined, fallback: T): T {
@@ -104,8 +134,7 @@ export const serversRepo = {
   },
   get(id: string): ServerConfig | null {
     const row = openDatabase().prepare(`SELECT * FROM servers WHERE id = ?`).get(id) as
-      | Record<string, unknown>
-      | undefined
+      Record<string, unknown> | undefined
     return row ? mapServer(row) : null
   },
   getDefault(): ServerConfig | null {
@@ -114,7 +143,10 @@ export const serversRepo = {
       .get() as Record<string, unknown> | undefined
     return row ? mapServer(row) : null
   },
-  save(input: Omit<ServerConfig, 'createdAt' | 'updatedAt'> & Partial<Pick<ServerConfig, 'createdAt' | 'updatedAt'>>): ServerConfig {
+  save(
+    input: Omit<ServerConfig, 'createdAt' | 'updatedAt'> &
+      Partial<Pick<ServerConfig, 'createdAt' | 'updatedAt'>>
+  ): ServerConfig {
     const database = openDatabase()
     const existing = input.id ? this.get(input.id) : null
     const id = input.id || uuid()
@@ -123,36 +155,96 @@ export const serversRepo = {
     if (input.isDefault) {
       database.prepare(`UPDATE servers SET is_default = 0`).run()
     }
+
+    const plainPassword =
+      input.password ?? (existing ? decryptSecret(existing.encryptedPassword) : '')
+    const plainApiKey =
+      input.apiKey || (existing ? decryptSecret(existing.encryptedApiKey) || existing.apiKey : '')
+    const encryptedPassword = plainPassword
+      ? encryptSecret(plainPassword)
+      : existing?.encryptedPassword
+    const encryptedApiKey = plainApiKey ? encryptSecret(plainApiKey) : existing?.encryptedApiKey
+
     database
       .prepare(
-        `INSERT INTO servers(id, name, base_url, api_path, api_key, username, password, is_default, created_at, updated_at)
-         VALUES(@id, @name, @base_url, @api_path, @api_key, @username, @password, @is_default, @created_at, @updated_at)
+        `INSERT INTO servers(
+           id, name, base_url, host, port, https, api_path, api_auth, api_key, encrypted_api_key,
+           username, password, encrypted_password, timeout_ms, reconnect_json, is_default,
+           health, last_health_at, created_at, updated_at
+         ) VALUES (
+           @id, @name, @base_url, @host, @port, @https, @api_path, @api_auth, @api_key, @encrypted_api_key,
+           @username, @password, @encrypted_password, @timeout_ms, @reconnect_json, @is_default,
+           @health, @last_health_at, @created_at, @updated_at
+         )
          ON CONFLICT(id) DO UPDATE SET
            name=excluded.name,
            base_url=excluded.base_url,
+           host=excluded.host,
+           port=excluded.port,
+           https=excluded.https,
            api_path=excluded.api_path,
+           api_auth=excluded.api_auth,
            api_key=excluded.api_key,
+           encrypted_api_key=excluded.encrypted_api_key,
            username=excluded.username,
            password=excluded.password,
+           encrypted_password=excluded.encrypted_password,
+           timeout_ms=excluded.timeout_ms,
+           reconnect_json=excluded.reconnect_json,
            is_default=excluded.is_default,
+           health=excluded.health,
+           last_health_at=excluded.last_health_at,
            updated_at=excluded.updated_at`
       )
       .run({
         id,
         name: input.name,
         base_url: input.baseUrl,
+        host: input.host ?? null,
+        port: input.port ?? null,
+        https: input.https === false ? 0 : 1,
         api_path: input.apiPath,
-        api_key: input.apiKey,
+        api_auth: input.apiAuth ?? 'both',
+        api_key: '',
+        encrypted_api_key: encryptedApiKey ?? null,
         username: input.username ?? null,
-        password: input.password ?? null,
+        password: null,
+        encrypted_password: encryptedPassword ?? null,
+        timeout_ms: input.timeoutMs ?? 15000,
+        reconnect_json: JSON.stringify(
+          input.reconnectPolicy ?? { enabled: true, maxRetries: 8, baseDelayMs: 1000 }
+        ),
         is_default: input.isDefault ? 1 : 0,
+        health: input.health ?? existing?.health ?? 'unknown',
+        last_health_at: input.lastHealthAt ?? existing?.lastHealthAt ?? null,
         created_at: createdAt,
         updated_at: updatedAt
       })
     return this.get(id)!
   },
+  setDefault(id: string): void {
+    const database = openDatabase()
+    database.prepare(`UPDATE servers SET is_default = 0`).run()
+    database
+      .prepare(`UPDATE servers SET is_default = 1, updated_at = ? WHERE id = ?`)
+      .run(now(), id)
+  },
+  updateHealth(id: string, health: ServerConfig['health']): void {
+    openDatabase()
+      .prepare(`UPDATE servers SET health = ?, last_health_at = ?, updated_at = ? WHERE id = ?`)
+      .run(health ?? 'unknown', now(), now(), id)
+  },
   delete(id: string): void {
     openDatabase().prepare(`DELETE FROM servers WHERE id = ?`).run(id)
+  }
+}
+
+/** Returns server with decrypted secrets for main-process API use only. */
+export function resolveServerSecrets(server: ServerConfig): ServerConfig {
+  return {
+    ...server,
+    apiKey: decryptSecret(server.encryptedApiKey) || server.apiKey,
+    password: decryptSecret(server.encryptedPassword) || server.password
   }
 }
 
@@ -161,13 +253,194 @@ function mapServer(row: Record<string, unknown>): ServerConfig {
     id: String(row.id),
     name: String(row.name),
     baseUrl: String(row.base_url),
-    apiPath: String(row.api_path),
-    apiKey: String(row.api_key),
+    host: row.host ? String(row.host) : undefined,
+    port: row.port != null ? Number(row.port) : undefined,
+    https: row.https === undefined ? true : Boolean(row.https),
+    apiPath: String(row.api_path ?? 'api/v4'),
+    apiAuth: (row.api_auth as ServerConfig['apiAuth']) || 'both',
+    apiKey: '',
+    encryptedApiKey: row.encrypted_api_key ? String(row.encrypted_api_key) : undefined,
     username: row.username ? String(row.username) : undefined,
-    password: row.password ? String(row.password) : undefined,
+    password: undefined,
+    encryptedPassword: row.encrypted_password ? String(row.encrypted_password) : undefined,
+    timeoutMs: Number(row.timeout_ms ?? 15000),
+    reconnectPolicy: parseJson(String(row.reconnect_json ?? ''), {
+      enabled: true,
+      maxRetries: 8,
+      baseDelayMs: 1000
+    }),
     isDefault: Boolean(row.is_default),
+    health: (row.health as ServerConfig['health']) || 'unknown',
+    lastHealthAt: row.last_health_at ? String(row.last_health_at) : undefined,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at)
+  }
+}
+
+export const appUsersRepo = {
+  list(): AppUser[] {
+    return (
+      openDatabase()
+        .prepare(`SELECT * FROM app_users ORDER BY full_name COLLATE NOCASE`)
+        .all() as Array<Record<string, unknown>>
+    ).map(mapAppUser)
+  },
+  get(id: string): AppUser | null {
+    const row = openDatabase().prepare(`SELECT * FROM app_users WHERE id = ?`).get(id) as
+      Record<string, unknown> | undefined
+    return row ? mapAppUser(row) : null
+  },
+  getByUsername(
+    username: string
+  ): (AppUser & { passwordSalt: string; passwordHash: string }) | null {
+    const row = openDatabase()
+      .prepare(`SELECT * FROM app_users WHERE username = ? COLLATE NOCASE`)
+      .get(username) as Record<string, unknown> | undefined
+    if (!row) return null
+    return {
+      ...mapAppUser(row),
+      passwordSalt: String(row.password_salt),
+      passwordHash: String(row.password_hash)
+    }
+  },
+  save(input: {
+    id?: string
+    fullName: string
+    username: string
+    password?: string
+    extension: string
+    agentId?: string
+    queueMembership?: string[]
+    role: UserRole
+    avatarUrl?: string
+    theme?: AppUser['theme']
+    language?: AppUser['language']
+    permissions?: string[]
+    serverId?: string
+    active?: boolean
+  }): AppUser {
+    const database = openDatabase()
+    const existing = input.id ? this.get(input.id) : null
+    const id = input.id || uuid()
+    const createdAt = existing?.createdAt ?? now()
+    const updatedAt = now()
+    const role = input.role
+    const permissions =
+      input.permissions ?? (role === 'admin' ? [...ADMIN_PERMISSIONS] : [...AGENT_PERMISSIONS])
+
+    const passwordMaterial = ((): { salt: string; hash: string } => {
+      if (input.password) {
+        const salt = createSalt()
+        return { salt, hash: hashPassword(input.password, salt) }
+      }
+      if (existing) {
+        const raw = database
+          .prepare(`SELECT password_salt, password_hash FROM app_users WHERE id = ?`)
+          .get(id) as { password_salt: string; password_hash: string } | undefined
+        if (!raw) throw new Error('Existing user password material missing')
+        return { salt: raw.password_salt, hash: raw.password_hash }
+      }
+      throw new Error('Password required for new user')
+    })()
+    const { salt, hash } = passwordMaterial
+
+    database
+      .prepare(
+        `INSERT INTO app_users(
+           id, full_name, username, password_salt, password_hash, extension, agent_id,
+           queue_membership_json, role, avatar_url, theme, language, permissions_json,
+           server_id, last_login_at, active, created_at, updated_at
+         ) VALUES (
+           @id, @full_name, @username, @password_salt, @password_hash, @extension, @agent_id,
+           @queue_membership_json, @role, @avatar_url, @theme, @language, @permissions_json,
+           @server_id, @last_login_at, @active, @created_at, @updated_at
+         )
+         ON CONFLICT(id) DO UPDATE SET
+           full_name=excluded.full_name,
+           username=excluded.username,
+           password_salt=excluded.password_salt,
+           password_hash=excluded.password_hash,
+           extension=excluded.extension,
+           agent_id=excluded.agent_id,
+           queue_membership_json=excluded.queue_membership_json,
+           role=excluded.role,
+           avatar_url=excluded.avatar_url,
+           theme=excluded.theme,
+           language=excluded.language,
+           permissions_json=excluded.permissions_json,
+           server_id=excluded.server_id,
+           active=excluded.active,
+           updated_at=excluded.updated_at`
+      )
+      .run({
+        id,
+        full_name: input.fullName,
+        username: input.username,
+        password_salt: salt,
+        password_hash: hash,
+        extension: input.extension,
+        agent_id: input.agentId ?? null,
+        queue_membership_json: JSON.stringify(input.queueMembership ?? []),
+        role,
+        avatar_url: input.avatarUrl ?? null,
+        theme: input.theme ?? 'system',
+        language: input.language ?? 'en',
+        permissions_json: JSON.stringify(permissions),
+        server_id: input.serverId ?? null,
+        last_login_at: existing?.lastLoginAt ?? null,
+        active: input.active === false ? 0 : 1,
+        created_at: createdAt,
+        updated_at: updatedAt
+      })
+    return this.get(id)!
+  },
+  authenticate(username: string, password: string): AppUser | null {
+    const user = this.getByUsername(username)
+    if (!user || !user.active) return null
+    if (!verifyPassword(password, user.passwordSalt, user.passwordHash)) return null
+    openDatabase()
+      .prepare(`UPDATE app_users SET last_login_at = ?, updated_at = ? WHERE id = ?`)
+      .run(now(), now(), user.id)
+    return this.get(user.id)
+  },
+  delete(id: string): void {
+    openDatabase().prepare(`DELETE FROM app_users WHERE id = ?`).run(id)
+  },
+  ensureBootstrapAdmin(): void {
+    const count = (
+      openDatabase().prepare(`SELECT COUNT(*) as c FROM app_users`).get() as { c: number }
+    ).c
+    if (count > 0) return
+    this.save({
+      fullName: 'Administrator',
+      username: 'admin',
+      password: 'admin',
+      extension: '1000',
+      role: 'admin',
+      permissions: [...ADMIN_PERMISSIONS]
+    })
+  }
+}
+
+function mapAppUser(row: Record<string, unknown>): AppUser {
+  return {
+    id: String(row.id),
+    fullName: String(row.full_name),
+    username: String(row.username),
+    hasPassword: true,
+    extension: String(row.extension),
+    agentId: row.agent_id ? String(row.agent_id) : undefined,
+    queueMembership: parseJson(String(row.queue_membership_json ?? '[]'), []),
+    role: row.role as UserRole,
+    avatarUrl: row.avatar_url ? String(row.avatar_url) : undefined,
+    theme: (row.theme as AppUser['theme']) || 'system',
+    language: (row.language as AppUser['language']) || 'en',
+    permissions: parseJson(String(row.permissions_json ?? '[]'), []),
+    serverId: row.server_id ? String(row.server_id) : undefined,
+    lastLoginAt: row.last_login_at ? String(row.last_login_at) : undefined,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+    active: Boolean(row.active)
   }
 }
 
@@ -212,8 +485,7 @@ export const contactsRepo = {
   },
   get(id: string): Contact | null {
     const row = openDatabase().prepare(`SELECT * FROM contacts WHERE id = ?`).get(id) as
-      | Record<string, unknown>
-      | undefined
+      Record<string, unknown> | undefined
     return row ? mapContact(row) : null
   },
   search(query: string): Contact[] {
@@ -235,7 +507,10 @@ export const contactsRepo = {
   favorites(): Contact[] {
     return this.list().filter((c) => c.isFavorite)
   },
-  save(input: Omit<Contact, 'createdAt' | 'updatedAt'> & Partial<Pick<Contact, 'createdAt' | 'updatedAt'>>): Contact {
+  save(
+    input: Omit<Contact, 'createdAt' | 'updatedAt'> &
+      Partial<Pick<Contact, 'createdAt' | 'updatedAt'>>
+  ): Contact {
     const database = openDatabase()
     const existing = input.id ? this.get(input.id) : null
     const id = input.id || uuid()
@@ -337,7 +612,9 @@ export const groupsRepo = {
       createdAt: String(row.created_at)
     }))
   },
-  save(group: Omit<ContactGroup, 'createdAt'> & Partial<Pick<ContactGroup, 'createdAt'>>): ContactGroup {
+  save(
+    group: Omit<ContactGroup, 'createdAt'> & Partial<Pick<ContactGroup, 'createdAt'>>
+  ): ContactGroup {
     const id = group.id || uuid()
     const createdAt = group.createdAt ?? now()
     openDatabase()
@@ -352,13 +629,15 @@ export const groupsRepo = {
 }
 
 export const callHistoryRepo = {
-  list(opts: {
-    start?: number
-    count?: number
-    search?: string
-    sortBy?: string
-    sortDir?: 'asc' | 'desc'
-  } = {}): { items: CallHistoryEntry[]; total: number } {
+  list(
+    opts: {
+      start?: number
+      count?: number
+      search?: string
+      sortBy?: string
+      sortDir?: 'asc' | 'desc'
+    } = {}
+  ): { items: CallHistoryEntry[]; total: number } {
     const start = opts.start ?? 0
     const count = opts.count ?? 50
     const sortBy = ['started_at', 'duration_sec', 'phone_number', 'contact_name'].includes(
@@ -427,9 +706,9 @@ export const callHistoryRepo = {
   },
   allForExport(): CallHistoryEntry[] {
     return (
-      openDatabase()
-        .prepare(`SELECT * FROM call_history ORDER BY started_at DESC`)
-        .all() as Array<Record<string, unknown>>
+      openDatabase().prepare(`SELECT * FROM call_history ORDER BY started_at DESC`).all() as Array<
+        Record<string, unknown>
+      >
     ).map(mapHistory)
   }
 }
@@ -456,7 +735,9 @@ function mapHistory(row: Record<string, unknown>): CallHistoryEntry {
 }
 
 export const logsRepo = {
-  add(entry: Omit<LogEntry, 'id' | 'createdAt'> & Partial<Pick<LogEntry, 'id' | 'createdAt'>>): LogEntry {
+  add(
+    entry: Omit<LogEntry, 'id' | 'createdAt'> & Partial<Pick<LogEntry, 'id' | 'createdAt'>>
+  ): LogEntry {
     const full: LogEntry = {
       id: entry.id ?? uuid(),
       category: entry.category,
@@ -485,9 +766,7 @@ export const logsRepo = {
     const database = openDatabase()
     const rows = opts.category
       ? (database
-          .prepare(
-            `SELECT * FROM logs WHERE category = ? ORDER BY created_at DESC LIMIT ?`
-          )
+          .prepare(`SELECT * FROM logs WHERE category = ? ORDER BY created_at DESC LIMIT ?`)
           .all(opts.category, limit) as Array<Record<string, unknown>>)
       : (database
           .prepare(`SELECT * FROM logs ORDER BY created_at DESC LIMIT ?`)
@@ -523,7 +802,10 @@ export const notificationsRepo = {
       read: Boolean(row.read)
     }))
   },
-  add(n: Omit<NotificationPayload, 'id' | 'createdAt' | 'read'> & Partial<Pick<NotificationPayload, 'id' | 'createdAt' | 'read'>>): NotificationPayload {
+  add(
+    n: Omit<NotificationPayload, 'id' | 'createdAt' | 'read'> &
+      Partial<Pick<NotificationPayload, 'id' | 'createdAt' | 'read'>>
+  ): NotificationPayload {
     const full: NotificationPayload = {
       id: n.id ?? uuid(),
       type: n.type,
@@ -605,9 +887,9 @@ export const usersRepo = {
 
 export const cacheRepo = {
   get<T>(key: string): T | null {
-    const row = openDatabase().prepare(`SELECT value, expires_at FROM cache WHERE key = ?`).get(key) as
-      | { value: string; expires_at: string | null }
-      | undefined
+    const row = openDatabase()
+      .prepare(`SELECT value, expires_at FROM cache WHERE key = ?`)
+      .get(key) as { value: string; expires_at: string | null } | undefined
     if (!row) return null
     if (row.expires_at && new Date(row.expires_at).getTime() < Date.now()) {
       openDatabase().prepare(`DELETE FROM cache WHERE key = ?`).run(key)

@@ -1,12 +1,15 @@
 /**
- * Simotel API HTTP client with retry, timeout, auth, logging, and caching hooks.
+ * Simotel API HTTP client (Axios).
  *
- * Auth: X-APIKEY header (Simotel v4).
- * All endpoints are POST with JSON body per official Postman collection.
+ * Auth modes (official laravel-simotel config):
+ * - basic  → HTTP Basic
+ * - token  → X-APIKEY
+ * - both   → Basic + X-APIKEY (Postman local-simotel default)
  */
 
+import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios'
 import { DEFAULT_API_PATH } from '../../../shared/constants'
-import type { ApiErrorShape, Pagination, ServerConfig } from '../../../shared/types'
+import type { ApiAuthMode, ApiErrorShape, Pagination, ServerConfig } from '../../../shared/types'
 
 export class ApiError extends Error {
   code: string
@@ -26,7 +29,11 @@ export interface ApiClientOptions {
   timeoutMs?: number
   maxRetries?: number
   retryBaseMs?: number
-  onLog?: (level: 'info' | 'warn' | 'error', message: string, meta?: Record<string, unknown>) => void
+  onLog?: (
+    level: 'info' | 'warn' | 'error',
+    message: string,
+    meta?: Record<string, unknown>
+  ) => void
   cacheGet?: (key: string) => unknown | null
   cacheSet?: (key: string, value: unknown, ttlMs?: number) => void
 }
@@ -40,59 +47,83 @@ export interface OriginateParams {
   timeout?: string | number
 }
 
-export interface SearchUsersParams {
-  status?: string
-  alike?: number | string
-  conditions?: { name?: string; number?: string; mapped?: string }
+export interface SimotelEnvelope<T = unknown> {
+  success?: boolean | number
+  message?: string
+  data?: T
 }
 
-export interface SearchQueuesParams {
-  alike?: string
-  conditions?: { name?: string; number?: string }
-}
-
-export interface CdrSearchParams {
-  conditions?: Record<string, string>
-  date_range?: { from: string; to: string }
-  pagination?: Pagination
-  alike?: string
+function resolveBaseUrl(server: Pick<ServerConfig, 'baseUrl' | 'host' | 'port' | 'https'>): string {
+  if (server.host) {
+    const scheme = server.https === false ? 'http' : 'https'
+    const port = server.port ? `:${server.port}` : ''
+    return `${scheme}://${server.host}${port}`
+  }
+  return server.baseUrl.replace(/\/+$/, '')
 }
 
 export class SimotelApiClient {
-  private baseUrl: string
+  private http: AxiosInstance
   private apiPath: string
+  private apiAuth: ApiAuthMode
   private apiKey: string
-  private timeoutMs: number
+  private username?: string
+  private password?: string
   private maxRetries: number
   private retryBaseMs: number
   private onLog?: ApiClientOptions['onLog']
   private cacheGet?: ApiClientOptions['cacheGet']
   private cacheSet?: ApiClientOptions['cacheSet']
 
-  constructor(server: Pick<ServerConfig, 'baseUrl' | 'apiPath' | 'apiKey'>, options: ApiClientOptions = {}) {
-    this.baseUrl = server.baseUrl.replace(/\/+$/, '')
+  constructor(server: ServerConfig, options: ApiClientOptions = {}) {
     this.apiPath = (server.apiPath || DEFAULT_API_PATH).replace(/^\/+|\/+$/g, '')
+    this.apiAuth = server.apiAuth ?? 'both'
     this.apiKey = server.apiKey
-    this.timeoutMs = options.timeoutMs ?? 15000
+    this.username = server.username
+    this.password = server.password
     this.maxRetries = options.maxRetries ?? 3
     this.retryBaseMs = options.retryBaseMs ?? 400
     this.onLog = options.onLog
     this.cacheGet = options.cacheGet
     this.cacheSet = options.cacheSet
+
+    this.http = axios.create({
+      baseURL: `${resolveBaseUrl(server)}/${this.apiPath}`,
+      timeout: options.timeoutMs ?? server.timeoutMs ?? 15000,
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+    this.http.interceptors.request.use((config) => {
+      if (this.apiAuth === 'token' || this.apiAuth === 'both') {
+        config.headers.set('X-APIKEY', this.apiKey)
+      }
+      if ((this.apiAuth === 'basic' || this.apiAuth === 'both') && this.username) {
+        config.auth = { username: this.username, password: this.password ?? '' }
+      }
+      return config
+    })
   }
 
-  updateServer(server: Pick<ServerConfig, 'baseUrl' | 'apiPath' | 'apiKey'>): void {
-    this.baseUrl = server.baseUrl.replace(/\/+$/, '')
+  updateServer(server: ServerConfig): void {
     this.apiPath = (server.apiPath || DEFAULT_API_PATH).replace(/^\/+|\/+$/g, '')
+    this.apiAuth = server.apiAuth ?? 'both'
     this.apiKey = server.apiKey
+    this.username = server.username
+    this.password = server.password
+    this.http.defaults.baseURL = `${resolveBaseUrl(server)}/${this.apiPath}`
+    this.http.defaults.timeout = server.timeoutMs ?? 15000
   }
 
-  private url(endpoint: string): string {
-    const path = endpoint.replace(/^\/+/, '')
-    return `${this.baseUrl}/${this.apiPath}/${path}`
-  }
-
-  async request<T>(endpoint: string, body: unknown = {}, opts: { cacheKey?: string; cacheTtlMs?: number; skipRetry?: boolean } = {}): Promise<T> {
+  async request<T>(
+    endpoint: string,
+    body: unknown = {},
+    opts: {
+      cacheKey?: string
+      cacheTtlMs?: number
+      skipRetry?: boolean
+      config?: AxiosRequestConfig
+    } = {}
+  ): Promise<T> {
     if (opts.cacheKey && this.cacheGet) {
       const cached = this.cacheGet(opts.cacheKey)
       if (cached !== null && cached !== undefined) return cached as T
@@ -100,65 +131,43 @@ export class SimotelApiClient {
 
     let attempt = 0
     let lastError: unknown
+    const path = endpoint.replace(/^\/+/, '')
 
     while (attempt <= (opts.skipRetry ? 0 : this.maxRetries)) {
-      const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), this.timeoutMs)
       try {
-        this.onLog?.('info', 'API request', { endpoint, attempt })
-        const res = await fetch(this.url(endpoint), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-APIKEY': this.apiKey
-          },
-          body: JSON.stringify(body ?? {}),
-          signal: controller.signal
-        })
-        clearTimeout(timer)
-
-        const text = await res.text()
-        let data: unknown = null
-        try {
-          data = text ? JSON.parse(text) : null
-        } catch {
-          data = text
-        }
-
-        if (!res.ok) {
-          throw new ApiError({
-            code: `HTTP_${res.status}`,
-            message: `Simotel API error ${res.status}`,
-            status: res.status,
-            details: data
-          })
-        }
-
+        this.onLog?.('info', 'API request', { endpoint: path, attempt, auth: this.apiAuth })
+        const res = await this.http.post<T>(path, body ?? {}, opts.config)
         if (opts.cacheKey && this.cacheSet) {
-          this.cacheSet(opts.cacheKey, data, opts.cacheTtlMs ?? 30_000)
+          this.cacheSet(opts.cacheKey, res.data, opts.cacheTtlMs ?? 30_000)
         }
-        return data as T
+        return res.data
       } catch (err) {
-        clearTimeout(timer)
         lastError = err
+        const status = axios.isAxiosError(err) ? err.response?.status : undefined
         const retryable =
-          err instanceof Error &&
-          (err.name === 'AbortError' ||
-            err.message.includes('fetch') ||
-            (err instanceof ApiError && (err.status ?? 0) >= 500))
+          !status ||
+          status >= 500 ||
+          (axios.isAxiosError(err) && ['ECONNABORTED', 'ERR_NETWORK'].includes(err.code ?? ''))
         this.onLog?.('warn', 'API request failed', {
-          endpoint,
+          endpoint: path,
           attempt,
+          status,
           error: err instanceof Error ? err.message : String(err)
         })
         if (!retryable || attempt >= this.maxRetries) break
-        const delay = this.retryBaseMs * Math.pow(2, attempt)
-        await sleep(delay)
+        await sleep(this.retryBaseMs * 2 ** attempt)
         attempt += 1
       }
     }
 
-    if (lastError instanceof ApiError) throw lastError
+    if (axios.isAxiosError(lastError)) {
+      throw new ApiError({
+        code: `HTTP_${lastError.response?.status ?? 'NETWORK'}`,
+        message: lastError.message,
+        status: lastError.response?.status,
+        details: lastError.response?.data
+      })
+    }
     throw new ApiError({
       code: 'REQUEST_FAILED',
       message: lastError instanceof Error ? lastError.message : 'Request failed',
@@ -166,11 +175,17 @@ export class SimotelApiClient {
     })
   }
 
-  ping(): Promise<unknown> {
-    return this.request('setting/ping/act', {}, { skipRetry: false })
+  ping(): Promise<SimotelEnvelope> {
+    return this.request('setting/ping/act', {})
   }
 
-  searchUsers(params: SearchUsersParams = {}): Promise<unknown> {
+  searchUsers(
+    params: {
+      status?: string
+      alike?: number | string
+      conditions?: { name?: string; number?: string; mapped?: string }
+    } = {}
+  ): Promise<SimotelEnvelope> {
     return this.request(
       'pbx/users/search',
       {
@@ -182,7 +197,12 @@ export class SimotelApiClient {
     )
   }
 
-  searchQueues(params: SearchQueuesParams = {}): Promise<unknown> {
+  searchQueues(
+    params: {
+      alike?: string
+      conditions?: { name?: string; number?: string }
+    } = {}
+  ): Promise<SimotelEnvelope> {
     return this.request(
       'pbx/queues/search',
       {
@@ -193,23 +213,23 @@ export class SimotelApiClient {
     )
   }
 
-  addQueueAgent(queue: string, agent: string): Promise<unknown> {
+  addQueueAgent(queue: string, agent: string): Promise<SimotelEnvelope> {
     return this.request('pbx/queues/addagent', { queue, agent })
   }
 
-  removeQueueAgent(queue: string, agent: string): Promise<unknown> {
+  removeQueueAgent(queue: string, agent: string): Promise<SimotelEnvelope> {
     return this.request('pbx/queues/removeagent', { queue, agent })
   }
 
-  pauseQueueAgent(queue: string, agent: string): Promise<unknown> {
+  pauseQueueAgent(queue: string, agent: string): Promise<SimotelEnvelope> {
     return this.request('pbx/queues/pauseagent', { queue, agent })
   }
 
-  resumeQueueAgent(queue: string, agent: string): Promise<unknown> {
+  resumeQueueAgent(queue: string, agent: string): Promise<SimotelEnvelope> {
     return this.request('pbx/queues/resumeagent', { queue, agent })
   }
 
-  originate(params: OriginateParams): Promise<unknown> {
+  originate(params: OriginateParams): Promise<SimotelEnvelope> {
     return this.request('call/originate/act', {
       caller: params.caller,
       callee: params.callee,
@@ -220,7 +240,12 @@ export class SimotelApiClient {
     })
   }
 
-  searchCdr(params: CdrSearchParams): Promise<unknown> {
+  searchCdr(params: {
+    conditions?: Record<string, string>
+    date_range?: { from: string; to: string }
+    pagination?: Pagination
+    alike?: string
+  }): Promise<SimotelEnvelope> {
     return this.request('reports/cdr/search', {
       conditions: params.conditions ?? { from: '', to: '', cuid: '' },
       date_range: params.date_range,
@@ -229,7 +254,12 @@ export class SimotelApiClient {
     })
   }
 
-  searchQuick(params: CdrSearchParams): Promise<unknown> {
+  searchQuick(params: {
+    conditions?: Record<string, string>
+    date_range?: { from: string; to: string }
+    pagination?: Pagination
+    alike?: string
+  }): Promise<SimotelEnvelope> {
     return this.request('reports/quick/search', {
       conditions: params.conditions ?? { from: '', to: '' },
       date_range: params.date_range,
@@ -242,7 +272,12 @@ export class SimotelApiClient {
     return this.request('reports/audio/download', { file })
   }
 
-  searchQueueReports(params: CdrSearchParams): Promise<unknown> {
+  searchQueueReports(params: {
+    conditions?: Record<string, string>
+    date_range?: { from: string; to: string }
+    pagination?: Pagination
+    alike?: string
+  }): Promise<SimotelEnvelope> {
     return this.request('reports/queue/search', {
       conditions: params.conditions ?? {},
       date_range: params.date_range,
