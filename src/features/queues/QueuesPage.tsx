@@ -1,153 +1,156 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client/bridge'
 import { useAppStore } from '@/stores/appStore'
+import { useI18n } from '@/i18n'
+import { Button } from '@/components/ui/button'
+import { Card, CardDescription, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/input'
 import type { QueueInfo } from '@shared/types'
 
 export function QueuesPage() {
-  const queues = useAppStore((s) => s.queues)
+  const { t } = useI18n()
   const setQueues = useAppStore((s) => s.setQueues)
   const showToast = useAppStore((s) => s.showToast)
-  const [loading, setLoading] = useState(true)
 
-  const refresh = useCallback(async () => {
-    setLoading(true)
-    try {
+  const {
+    data: queues = [],
+    isLoading,
+    refetch,
+    isFetching
+  } = useQuery({
+    queryKey: ['queues'],
+    queryFn: async () => {
       const list = (await api.bridge.queues.list()) as QueueInfo[]
       setQueues(list)
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to load queues', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }, [setQueues, showToast])
-
-  useEffect(() => {
-    void refresh()
-    const id = setInterval(() => void refresh(), 8000)
-    return () => clearInterval(id)
-  }, [refresh])
+      return list
+    },
+    refetchInterval: 8000
+  })
 
   return (
-    <div className="stack">
-      <div className="panel row" style={{ justifyContent: 'space-between' }}>
+    <div className="flex flex-col gap-4">
+      <Card className="flex items-center justify-between gap-3">
         <div>
-          <h1>Queue Management</h1>
-          <p className="muted">Members, waiting callers, join/leave, and realtime refresh.</p>
+          <CardTitle>{t.queues.title}</CardTitle>
+          <CardDescription>{t.queues.subtitle}</CardDescription>
         </div>
-        <button type="button" className="btn" onClick={() => void refresh()}>
-          Refresh
-        </button>
-      </div>
+        <Button
+          onClick={() =>
+            void refetch().catch((err) =>
+              showToast(err instanceof Error ? err.message : t.queues.loadFailed, 'error')
+            )
+          }
+        >
+          {isFetching ? t.common.loading : t.common.refresh}
+        </Button>
+      </Card>
 
-      {loading && queues.length === 0 && (
-        <div className="panel stack">
-          <div className="skeleton" style={{ height: 24 }} />
-          <div className="skeleton" style={{ height: 24 }} />
-          <div className="skeleton" style={{ height: 24 }} />
-        </div>
+      {isLoading && queues.length === 0 && (
+        <Card className="flex flex-col gap-3">
+          <div className="skeleton h-6" />
+          <div className="skeleton h-6" />
+          <div className="skeleton h-6" />
+        </Card>
       )}
 
-      {!loading && queues.length === 0 && <div className="panel empty">No queues available</div>}
+      {!isLoading && queues.length === 0 && (
+        <Card className="py-12 text-center text-[var(--color-muted)]">{t.queues.none}</Card>
+      )}
 
-      <div className="grid-2">
+      <div className="grid gap-4 md:grid-cols-2">
         {queues.map((q) => (
-          <div key={q.id} className="panel stack">
-            <div className="row" style={{ justifyContent: 'space-between' }}>
+          <Card key={q.id} className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2">
               <div>
-                <h2>{q.name}</h2>
-                <div className="muted">#{q.number}</div>
+                <CardTitle>{q.name}</CardTitle>
+                <div className="text-sm text-[var(--color-muted)]" dir="ltr">
+                  #{q.number}
+                </div>
               </div>
-              <span className={`badge ${q.waitingCallers > 0 ? 'warn' : 'ok'}`}>
-                {q.waitingCallers} waiting
-              </span>
+              <Badge tone={q.waitingCallers > 0 ? 'warn' : 'ok'}>
+                {q.waitingCallers} {t.queues.waiting}
+              </Badge>
             </div>
-            <div className="grid-3">
-              <div className="stat">
-                <span className="muted">Longest wait</span>
-                <strong>{q.longestWaitSec}s</strong>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] p-3">
+                <div className="text-xs text-[var(--color-muted)]">{t.queues.longestWait}</div>
+                <strong>{q.longestWaitSec}ث</strong>
               </div>
-              <div className="stat">
-                <span className="muted">Answered</span>
+              <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] p-3">
+                <div className="text-xs text-[var(--color-muted)]">{t.queues.answered}</div>
                 <strong>{q.answered}</strong>
               </div>
-              <div className="stat">
-                <span className="muted">Abandoned</span>
+              <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] p-3">
+                <div className="text-xs text-[var(--color-muted)]">{t.queues.abandoned}</div>
                 <strong>{q.abandoned}</strong>
               </div>
             </div>
             <div>
-              <div className="muted" style={{ marginBottom: 8 }}>
-                Members ({q.members?.length ?? 0})
+              <div className="mb-2 text-sm text-[var(--color-muted)]">
+                {t.queues.members} ({q.members?.length ?? 0})
               </div>
               {(q.members ?? []).length === 0 ? (
-                <div className="muted">No member details in payload</div>
+                <div className="text-sm text-[var(--color-muted)]">{t.queues.noMembers}</div>
               ) : (
-                <ul style={{ margin: 0, paddingInlineStart: 18 }}>
+                <ul className="m-0 list-disc pe-5">
                   {q.members.map((m, i) => (
                     <li key={`${m.agent}-${i}`}>
-                      {m.name ?? m.agent} · {m.paused ? 'paused' : m.status}
+                      {m.name ?? m.agent} · {m.paused ? t.queues.pause : m.status}
                     </li>
                   ))}
                 </ul>
               )}
             </div>
-            <div className="row">
-              <button
-                type="button"
-                className="btn btn-primary"
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="primary"
                 onClick={() =>
                   void api.bridge.queues
                     .join(q.number)
                     .then(() => {
-                      showToast(`Joined ${q.name}`, 'success')
-                      return refresh()
+                      showToast(`${t.queues.joined}: ${q.name}`, 'success')
+                      return refetch()
                     })
                     .catch((e) => showToast(e.message, 'error'))
                 }
               >
-                Join
-              </button>
-              <button
-                type="button"
-                className="btn"
+                {t.queues.join}
+              </Button>
+              <Button
                 onClick={() =>
                   void api.bridge.queues
                     .leave(q.number)
                     .then(() => {
-                      showToast(`Left ${q.name}`, 'info')
-                      return refresh()
+                      showToast(`${t.queues.left}: ${q.name}`, 'info')
+                      return refetch()
                     })
                     .catch((e) => showToast(e.message, 'error'))
                 }
               >
-                Leave
-              </button>
-              <button
-                type="button"
-                className="btn"
+                {t.queues.leave}
+              </Button>
+              <Button
                 onClick={() =>
                   void api.bridge.queues
                     .pause(q.number)
-                    .then(() => showToast('Paused', 'info'))
+                    .then(() => showToast(t.queues.paused, 'info'))
                     .catch((e) => showToast(e.message, 'error'))
                 }
               >
-                Pause
-              </button>
-              <button
-                type="button"
-                className="btn"
+                {t.queues.pause}
+              </Button>
+              <Button
                 onClick={() =>
                   void api.bridge.queues
                     .resume(q.number)
-                    .then(() => showToast('Resumed', 'success'))
+                    .then(() => showToast(t.queues.resumed, 'success'))
                     .catch((e) => showToast(e.message, 'error'))
                 }
               >
-                Resume
-              </button>
+                {t.queues.resume}
+              </Button>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
     </div>

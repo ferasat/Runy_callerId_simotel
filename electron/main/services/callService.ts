@@ -287,7 +287,7 @@ export function createMainWindow(): BrowserWindow {
     minWidth: 1024,
     minHeight: 640,
     show: false,
-    title: 'Simotel Softphone',
+    title: 'سیموتل سافت‌فون',
     backgroundColor: '#0f1720',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

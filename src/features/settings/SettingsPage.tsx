@@ -1,25 +1,31 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/api/client/bridge'
 import { useAppStore } from '@/stores/appStore'
+import { applyDocumentDirection, useI18n } from '@/i18n'
+import { Button } from '@/components/ui/button'
+import { Card, CardDescription, CardTitle } from '@/components/ui/card'
+import { Input, Label, Select } from '@/components/ui/input'
 import type { AppSettings, LogEntry } from '@shared/types'
 
 export function SettingsPage() {
+  const { t } = useI18n()
   const settings = useAppStore((s) => s.settings)
   const setSettings = useAppStore((s) => s.setSettings)
   const showToast = useAppStore((s) => s.showToast)
-  const [draft, setDraft] = useState<AppSettings>(settings)
+  const [draft, setDraft] = useState<AppSettings | null>(null)
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [updater, setUpdater] = useState<unknown>(null)
+  const form = draft ?? settings
 
-  useEffect(() => setDraft(settings), [settings])
   useEffect(() => {
     void api.bridge.logs.list({ limit: 100 }).then(setLogs)
     void api.bridge.updater.status().then(setUpdater)
   }, [])
 
   async function save(): Promise<void> {
-    const next = await api.bridge.settings.set(draft)
+    const next = await api.bridge.settings.set(form)
     setSettings(next)
+    setDraft(null)
     document.documentElement.setAttribute(
       'data-theme',
       next.theme === 'system'
@@ -28,217 +34,214 @@ export function SettingsPage() {
           : 'light'
         : next.theme
     )
-    showToast('Settings saved', 'success')
+    applyDocumentDirection(next.language)
+    document.title = next.language === 'fa' ? 'سیموتل سافت‌فون' : 'Simotel Softphone'
+    showToast(t.settings.saved, 'success')
   }
 
   return (
-    <div className="stack">
-      <div className="panel">
-        <h1>Settings</h1>
-        <p className="muted">General, theme, notifications, audio, security, logs, backup, and updates.</p>
-      </div>
+    <div className="flex flex-col gap-4">
+      <Card>
+        <CardTitle>{t.settings.title}</CardTitle>
+        <CardDescription>{t.settings.subtitle}</CardDescription>
+      </Card>
 
-      <div className="grid-2">
-        <div className="panel stack">
-          <h2>General</h2>
-          <label className="label">
-            Theme
-            <select
-              className="select"
-              value={draft.theme}
-              onChange={(e) => setDraft({ ...draft, theme: e.target.value as AppSettings['theme'] })}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="flex flex-col gap-3">
+          <CardTitle>{t.settings.general}</CardTitle>
+          <Label>
+            {t.settings.theme}
+            <Select
+              value={form.theme}
+              onChange={(e) => setDraft({ ...form, theme: e.target.value as AppSettings['theme'] })}
             >
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-              <option value="system">System</option>
-            </select>
-          </label>
-          <label className="label">
-            Language
-            <select
-              className="select"
-              value={draft.language}
-              onChange={(e) => setDraft({ ...draft, language: e.target.value as AppSettings['language'] })}
+              <option value="light">{t.settings.themeLight}</option>
+              <option value="dark">{t.settings.themeDark}</option>
+              <option value="system">{t.settings.themeSystem}</option>
+            </Select>
+          </Label>
+          <Label>
+            {t.settings.language}
+            <Select
+              value={form.language}
+              onChange={(e) =>
+                setDraft({ ...form, language: e.target.value as AppSettings['language'] })
+              }
             >
-              <option value="en">English</option>
               <option value="fa">فارسی</option>
-            </select>
-          </label>
-          <label className="row">
+              <option value="en">English</option>
+            </Select>
+          </Label>
+          <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
-              checked={draft.autoStart}
-              onChange={(e) => setDraft({ ...draft, autoStart: e.target.checked })}
+              checked={form.autoStart}
+              onChange={(e) => setDraft({ ...form, autoStart: e.target.checked })}
             />
-            Auto start
+            {t.settings.autoStart}
           </label>
-          <label className="row">
+          <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
-              checked={draft.startWithWindows}
-              onChange={(e) => setDraft({ ...draft, startWithWindows: e.target.checked })}
+              checked={form.startWithWindows}
+              onChange={(e) => setDraft({ ...form, startWithWindows: e.target.checked })}
             />
-            Start with Windows
+            {t.settings.startWithWindows}
           </label>
-          <label className="row">
+          <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
-              checked={draft.minimizeToTray}
-              onChange={(e) => setDraft({ ...draft, minimizeToTray: e.target.checked })}
+              checked={form.minimizeToTray}
+              onChange={(e) => setDraft({ ...form, minimizeToTray: e.target.checked })}
             />
-            Minimize to tray
+            {t.settings.minimizeToTray}
           </label>
-        </div>
+        </Card>
 
-        <div className="panel stack">
-          <h2>Notifications & Audio</h2>
-          <label className="row">
+        <Card className="flex flex-col gap-3">
+          <CardTitle>{t.settings.notificationsAudio}</CardTitle>
+          <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
-              checked={draft.desktopNotifications}
-              onChange={(e) => setDraft({ ...draft, desktopNotifications: e.target.checked })}
+              checked={form.desktopNotifications}
+              onChange={(e) => setDraft({ ...form, desktopNotifications: e.target.checked })}
             />
-            Desktop notifications
+            {t.settings.desktopNotifications}
           </label>
-          <label className="row">
+          <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
-              checked={draft.soundNotifications}
-              onChange={(e) => setDraft({ ...draft, soundNotifications: e.target.checked })}
+              checked={form.soundNotifications}
+              onChange={(e) => setDraft({ ...form, soundNotifications: e.target.checked })}
             />
-            Sound notifications
+            {t.settings.soundNotifications}
           </label>
-          <label className="label">
-            Custom ringtone path
-            <input
-              className="input"
-              value={draft.customRingtonePath ?? ''}
-              onChange={(e) => setDraft({ ...draft, customRingtonePath: e.target.value })}
+          <Label>
+            {t.settings.customRingtone}
+            <Input
+              dir="ltr"
+              className="text-left"
+              value={form.customRingtonePath ?? ''}
+              onChange={(e) => setDraft({ ...form, customRingtonePath: e.target.value })}
             />
-          </label>
-          <label className="label">
-            Originate context
-            <input
-              className="input"
-              value={draft.originateContext}
-              onChange={(e) => setDraft({ ...draft, originateContext: e.target.value })}
+          </Label>
+          <Label>
+            {t.settings.originateContext}
+            <Input
+              dir="ltr"
+              className="text-left"
+              value={form.originateContext}
+              onChange={(e) => setDraft({ ...form, originateContext: e.target.value })}
             />
-          </label>
-          <label className="label">
-            Originate timeout (sec)
-            <input
-              className="input"
+          </Label>
+          <Label>
+            {t.settings.originateTimeout}
+            <Input
               type="number"
-              value={draft.originateTimeout}
-              onChange={(e) => setDraft({ ...draft, originateTimeout: Number(e.target.value) })}
+              value={form.originateTimeout}
+              onChange={(e) => setDraft({ ...form, originateTimeout: Number(e.target.value) })}
             />
-          </label>
-        </div>
+          </Label>
+        </Card>
       </div>
 
-      <div className="grid-2">
-        <div className="panel stack">
-          <h2>Advanced</h2>
-          <label className="label">
-            Log level
-            <select
-              className="select"
-              value={draft.logLevel}
-              onChange={(e) => setDraft({ ...draft, logLevel: e.target.value as AppSettings['logLevel'] })}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="flex flex-col gap-3">
+          <CardTitle>{t.settings.advanced}</CardTitle>
+          <Label>
+            {t.settings.logLevel}
+            <Select
+              value={form.logLevel}
+              onChange={(e) =>
+                setDraft({ ...form, logLevel: e.target.value as AppSettings['logLevel'] })
+              }
             >
               <option value="error">Error</option>
               <option value="warn">Warn</option>
               <option value="info">Info</option>
               <option value="debug">Debug</option>
-            </select>
-          </label>
-          <label className="row">
+            </Select>
+          </Label>
+          <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
-              checked={draft.autoCheckUpdates}
-              onChange={(e) => setDraft({ ...draft, autoCheckUpdates: e.target.checked })}
+              checked={form.autoCheckUpdates}
+              onChange={(e) => setDraft({ ...form, autoCheckUpdates: e.target.checked })}
             />
-            Auto-check updates
+            {t.settings.autoCheckUpdates}
           </label>
-          <div className="row">
-            <button type="button" className="btn btn-primary" onClick={() => void save()}>
-              Save Settings
-            </button>
-            <button type="button" className="btn" onClick={() => void api.bridge.backup.create()}>
-              Backup
-            </button>
+          <div className="flex gap-2">
+            <Button variant="primary" onClick={() => void save()}>
+              {t.settings.saveSettings}
+            </Button>
+            <Button onClick={() => void api.bridge.backup.create()}>{t.settings.backup}</Button>
           </div>
-        </div>
+        </Card>
 
-        <div className="panel stack">
-          <h2>Updates</h2>
-          <pre className="muted" style={{ whiteSpace: 'pre-wrap', fontSize: 12 }}>
+        <Card className="flex flex-col gap-3">
+          <CardTitle>{t.settings.updates}</CardTitle>
+          <pre className="whitespace-pre-wrap text-xs text-[var(--color-muted)]" dir="ltr">
             {JSON.stringify(updater, null, 2)}
           </pre>
-          <div className="row">
-            <button
-              type="button"
-              className="btn"
-              onClick={() => void api.bridge.updater.check().then(setUpdater)}
-            >
-              Check updates
-            </button>
-            <button type="button" className="btn" onClick={() => void api.bridge.updater.download()}>
-              Download
-            </button>
-            <button type="button" className="btn btn-primary" onClick={() => void api.bridge.updater.install()}>
-              Restart & Install
-            </button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => void api.bridge.updater.check().then(setUpdater)}>
+              {t.settings.checkUpdates}
+            </Button>
+            <Button onClick={() => void api.bridge.updater.download()}>
+              {t.settings.download}
+            </Button>
+            <Button variant="primary" onClick={() => void api.bridge.updater.install()}>
+              {t.settings.restartInstall}
+            </Button>
           </div>
-        </div>
+        </Card>
       </div>
 
-      <div className="panel stack">
-        <div className="row" style={{ justifyContent: 'space-between' }}>
-          <h2>Logs</h2>
-          <div className="row">
-            <button type="button" className="btn" onClick={() => void api.bridge.logs.export()}>
-              Export
-            </button>
-            <button
-              type="button"
-              className="btn btn-danger"
+      <Card className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle>{t.settings.logs}</CardTitle>
+          <div className="flex gap-2">
+            <Button onClick={() => void api.bridge.logs.export()}>{t.settings.export}</Button>
+            <Button
+              variant="danger"
               onClick={() =>
                 void api.bridge.logs.clear().then(async () => {
                   setLogs(await api.bridge.logs.list({ limit: 100 }))
-                  showToast('Logs cleared', 'info')
+                  showToast(t.settings.logsCleared, 'info')
                 })
               }
             >
-              Clear
-            </button>
+              {t.settings.clear}
+            </Button>
           </div>
         </div>
         {logs.length === 0 ? (
-          <div className="empty">No logs</div>
+          <div className="py-8 text-center text-[var(--color-muted)]">{t.settings.noLogs}</div>
         ) : (
-          <table className="table">
+          <table className="w-full border-collapse text-sm">
             <thead>
-              <tr>
-                <th>Time</th>
-                <th>Category</th>
-                <th>Level</th>
-                <th>Message</th>
+              <tr className="text-xs text-[var(--color-muted)]">
+                <th className="border-b border-[var(--color-border)] p-2">{t.settings.time}</th>
+                <th className="border-b border-[var(--color-border)] p-2">{t.settings.category}</th>
+                <th className="border-b border-[var(--color-border)] p-2">{t.settings.level}</th>
+                <th className="border-b border-[var(--color-border)] p-2">{t.settings.message}</th>
               </tr>
             </thead>
             <tbody>
               {logs.map((l) => (
                 <tr key={l.id}>
-                  <td>{new Date(l.createdAt).toLocaleString()}</td>
-                  <td>{l.category}</td>
-                  <td>{l.level}</td>
-                  <td>{l.message}</td>
+                  <td className="border-b border-[var(--color-border)] p-2">
+                    {new Date(l.createdAt).toLocaleString('fa-IR')}
+                  </td>
+                  <td className="border-b border-[var(--color-border)] p-2">{l.category}</td>
+                  <td className="border-b border-[var(--color-border)] p-2">{l.level}</td>
+                  <td className="border-b border-[var(--color-border)] p-2">{l.message}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

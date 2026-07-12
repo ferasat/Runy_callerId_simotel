@@ -1,158 +1,157 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client/bridge'
 import { useAppStore } from '@/stores/appStore'
+import { useI18n } from '@/i18n'
+import { Button } from '@/components/ui/button'
+import { Card, CardDescription, CardTitle } from '@/components/ui/card'
+import { Label, Select, Badge } from '@/components/ui/input'
+import { useState } from 'react'
 import type { CallHistoryEntry } from '@shared/types'
-
-export function HistoryPage() {
-  const searchQuery = useAppStore((s) => s.searchQuery)
-  const showToast = useAppStore((s) => s.showToast)
-  const [items, setItems] = useState<CallHistoryEntry[]>([])
-  const [total, setTotal] = useState(0)
-  const [start, setStart] = useState(0)
-  const [sortBy, setSortBy] = useState('started_at')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
-  const [loading, setLoading] = useState(true)
-  const count = 25
-
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const result = await api.bridge.call.history({
-        start,
-        count,
-        search: searchQuery,
-        sortBy,
-        sortDir
-      })
-      setItems(result.items ?? [])
-      setTotal(result.total ?? 0)
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to load history', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }, [start, searchQuery, sortBy, sortDir, showToast])
-
-  useEffect(() => {
-    void load()
-  }, [load])
-
-  const pages = Math.max(1, Math.ceil(total / count))
-  const page = Math.floor(start / count) + 1
-
-  return (
-    <div className="stack">
-      <div className="panel row" style={{ justifyContent: 'space-between' }}>
-        <div>
-          <h1>Call History</h1>
-          <p className="muted">Pagination, filtering, sorting, and export.</p>
-        </div>
-        <div className="row">
-          <button type="button" className="btn" onClick={() => void api.bridge.call.exportHistory('csv')}>
-            Export CSV
-          </button>
-          <button type="button" className="btn" onClick={() => void api.bridge.call.exportHistory('excel')}>
-            Export Excel
-          </button>
-          <button type="button" className="btn" onClick={() => void api.bridge.call.exportHistory('pdf')}>
-            Export PDF
-          </button>
-        </div>
-      </div>
-
-      <div className="panel row">
-        <label className="label" style={{ minWidth: 160 }}>
-          Sort by
-          <select className="select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-            <option value="started_at">Started</option>
-            <option value="duration_sec">Duration</option>
-            <option value="phone_number">Number</option>
-            <option value="contact_name">Name</option>
-          </select>
-        </label>
-        <label className="label" style={{ minWidth: 120 }}>
-          Direction
-          <select
-            className="select"
-            value={sortDir}
-            onChange={(e) => setSortDir(e.target.value as 'asc' | 'desc')}
-          >
-            <option value="desc">Desc</option>
-            <option value="asc">Asc</option>
-          </select>
-        </label>
-        <div className="muted" style={{ marginInlineStart: 'auto' }}>
-          {total} records
-        </div>
-      </div>
-
-      <div className="panel">
-        {loading ? (
-          <div className="stack">
-            <div className="skeleton" />
-            <div className="skeleton" />
-            <div className="skeleton" />
-          </div>
-        ) : items.length === 0 ? (
-          <div className="empty">No call history</div>
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Started</th>
-                <th>Number</th>
-                <th>Name</th>
-                <th>Company</th>
-                <th>Queue</th>
-                <th>Direction</th>
-                <th>Duration</th>
-                <th>Disposition</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((h) => (
-                <tr key={h.id}>
-                  <td>{new Date(h.startedAt).toLocaleString()}</td>
-                  <td>{h.phoneNumber}</td>
-                  <td>{h.contactName ?? '—'}</td>
-                  <td>{h.company ?? '—'}</td>
-                  <td>{h.queue ?? '—'}</td>
-                  <td>{h.direction}</td>
-                  <td>{formatDuration(h.durationSec)}</td>
-                  <td>{h.disposition ?? '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        <div className="row" style={{ marginTop: 16, justifyContent: 'flex-end' }}>
-          <button
-            type="button"
-            className="btn"
-            disabled={page <= 1}
-            onClick={() => setStart(Math.max(0, start - count))}
-          >
-            Prev
-          </button>
-          <span className="badge">
-            Page {page} / {pages}
-          </span>
-          <button
-            type="button"
-            className="btn"
-            disabled={page >= pages}
-            onClick={() => setStart(start + count)}
-          >
-            Next
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function formatDuration(sec: number): string {
   const m = Math.floor(sec / 60)
   const s = sec % 60
   return `${m}:${String(s).padStart(2, '0')}`
+}
+
+export function HistoryPage() {
+  const { t, lang } = useI18n()
+  const searchQuery = useAppStore((s) => s.searchQuery)
+  const showToast = useAppStore((s) => s.showToast)
+  const [start, setStart] = useState(0)
+  const [sortBy, setSortBy] = useState('started_at')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const count = 25
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['call-history', start, count, searchQuery, sortBy, sortDir],
+    queryFn: async () => {
+      try {
+        return await api.bridge.call.history({
+          start,
+          count,
+          search: searchQuery,
+          sortBy,
+          sortDir
+        })
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : t.history.loadFailed, 'error')
+        return { items: [], total: 0 }
+      }
+    }
+  })
+
+  const items: CallHistoryEntry[] = data?.items ?? []
+  const total = data?.total ?? 0
+  const pages = Math.max(1, Math.ceil(total / count))
+  const page = Math.floor(start / count) + 1
+  const locale = lang === 'fa' ? 'fa-IR' : undefined
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Card className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <CardTitle>{t.history.title}</CardTitle>
+          <CardDescription>{t.history.subtitle}</CardDescription>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => void api.bridge.call.exportHistory('csv')}>
+            {t.history.exportCsv}
+          </Button>
+          <Button onClick={() => void api.bridge.call.exportHistory('excel')}>
+            {t.history.exportExcel}
+          </Button>
+          <Button onClick={() => void api.bridge.call.exportHistory('pdf')}>
+            {t.history.exportPdf}
+          </Button>
+        </div>
+      </Card>
+
+      <Card className="flex flex-wrap items-end gap-3">
+        <Label className="min-w-40">
+          {t.history.sortBy}
+          <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            <option value="started_at">{t.history.started}</option>
+            <option value="duration_sec">{t.history.duration}</option>
+            <option value="phone_number">{t.common.number}</option>
+            <option value="contact_name">{t.common.name}</option>
+          </Select>
+        </Label>
+        <Label className="min-w-28">
+          {t.history.direction}
+          <Select value={sortDir} onChange={(e) => setSortDir(e.target.value as 'asc' | 'desc')}>
+            <option value="desc">{t.history.desc}</option>
+            <option value="asc">{t.history.asc}</option>
+          </Select>
+        </Label>
+        <div className="ms-auto text-sm text-[var(--color-muted)]">
+          {total} {t.history.records}
+        </div>
+      </Card>
+
+      <Card>
+        {isLoading ? (
+          <div className="flex flex-col gap-3">
+            <div className="skeleton" />
+            <div className="skeleton" />
+            <div className="skeleton" />
+          </div>
+        ) : items.length === 0 ? (
+          <div className="py-12 text-center text-[var(--color-muted)]">{t.history.none}</div>
+        ) : (
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="text-xs uppercase tracking-wide text-[var(--color-muted)]">
+                <th className="border-b border-[var(--color-border)] p-2">{t.history.started}</th>
+                <th className="border-b border-[var(--color-border)] p-2">{t.common.number}</th>
+                <th className="border-b border-[var(--color-border)] p-2">{t.common.name}</th>
+                <th className="border-b border-[var(--color-border)] p-2">{t.common.company}</th>
+                <th className="border-b border-[var(--color-border)] p-2">{t.history.queue}</th>
+                <th className="border-b border-[var(--color-border)] p-2">{t.history.direction}</th>
+                <th className="border-b border-[var(--color-border)] p-2">{t.history.duration}</th>
+                <th className="border-b border-[var(--color-border)] p-2">
+                  {t.history.disposition}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((h) => (
+                <tr key={h.id}>
+                  <td className="border-b border-[var(--color-border)] p-2">
+                    {new Date(h.startedAt).toLocaleString(locale)}
+                  </td>
+                  <td className="border-b border-[var(--color-border)] p-2" dir="ltr">
+                    {h.phoneNumber}
+                  </td>
+                  <td className="border-b border-[var(--color-border)] p-2">
+                    {h.contactName ?? '—'}
+                  </td>
+                  <td className="border-b border-[var(--color-border)] p-2">{h.company ?? '—'}</td>
+                  <td className="border-b border-[var(--color-border)] p-2">{h.queue ?? '—'}</td>
+                  <td className="border-b border-[var(--color-border)] p-2">{h.direction}</td>
+                  <td className="border-b border-[var(--color-border)] p-2" dir="ltr">
+                    {formatDuration(h.durationSec)}
+                  </td>
+                  <td className="border-b border-[var(--color-border)] p-2">
+                    {h.disposition ?? '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <Button disabled={page <= 1} onClick={() => setStart(Math.max(0, start - count))}>
+            {t.common.prev}
+          </Button>
+          <Badge>
+            {t.common.page} {page} / {pages}
+          </Badge>
+          <Button disabled={page >= pages} onClick={() => setStart(start + count)}>
+            {t.common.next}
+          </Button>
+        </div>
+      </Card>
+    </div>
+  )
 }

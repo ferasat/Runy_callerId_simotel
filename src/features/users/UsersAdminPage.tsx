@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client/bridge'
 import { useAppStore } from '@/stores/appStore'
+import { useI18n } from '@/i18n'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { Input, Label, Select } from '@/components/ui/input'
 import type { UserRole } from '@shared/types'
 
 export function UsersAdminPage() {
+  const { t, lang } = useI18n()
   const session = useAppStore((s) => s.session)
   const showToast = useAppStore((s) => s.showToast)
   const queryClient = useQueryClient()
@@ -24,56 +26,62 @@ export function UsersAdminPage() {
   })
 
   if (session?.role !== 'admin') {
-    return <Card>Admin access required</Card>
+    return <Card>{t.users.adminOnly}</Card>
   }
+
+  const locale = lang === 'fa' ? 'fa-IR' : undefined
 
   return (
     <div className="flex flex-col gap-4">
       <Card>
-        <CardTitle>User Management</CardTitle>
-        <CardDescription>
-          Admin can create agents with encrypted passwords and role permissions.
-        </CardDescription>
+        <CardTitle>{t.users.title}</CardTitle>
+        <CardDescription>{t.users.subtitle}</CardDescription>
       </Card>
 
       <Card className="grid gap-3 md:grid-cols-2">
         <Label>
-          Full name
+          {t.users.fullName}
           <Input
             value={form.fullName}
             onChange={(e) => setForm({ ...form, fullName: e.target.value })}
           />
         </Label>
         <Label>
-          Username
+          {t.common.username}
           <Input
+            dir="ltr"
+            className="text-left"
             value={form.username}
             onChange={(e) => setForm({ ...form, username: e.target.value })}
           />
         </Label>
         <Label>
-          Password
+          {t.common.password}
           <Input
             type="password"
+            dir="ltr"
+            className="text-left"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
         </Label>
         <Label>
-          Extension
+          {t.common.extension}
           <Input
+            dir="ltr"
+            className="text-left"
             value={form.extension}
             onChange={(e) => setForm({ ...form, extension: e.target.value })}
           />
         </Label>
         <Label>
-          Role
+          {t.common.role}
           <Select
             value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })}
           >
-            <option value="agent">Agent</option>
-            <option value="admin">Admin</option>
+            <option value="agent">{t.common.agent}</option>
+            <option value="admin">{t.common.admin}</option>
           </Select>
         </Label>
         <div className="flex items-end">
@@ -84,7 +92,7 @@ export function UsersAdminPage() {
                 .save(form)
                 .then(async () => {
                   await queryClient.invalidateQueries({ queryKey: ['app-users'] })
-                  showToast('User saved', 'success')
+                  showToast(t.users.saved, 'success')
                   setForm({
                     fullName: '',
                     username: '',
@@ -96,7 +104,7 @@ export function UsersAdminPage() {
                 .catch((e) => showToast(e.message, 'error'))
             }
           >
-            Create User
+            {t.users.create}
           </Button>
         </div>
       </Card>
@@ -104,12 +112,12 @@ export function UsersAdminPage() {
       <Card>
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="text-left text-xs uppercase tracking-wide text-[var(--color-muted)]">
-              <th className="border-b border-[var(--color-border)] p-2">Name</th>
-              <th className="border-b border-[var(--color-border)] p-2">Username</th>
-              <th className="border-b border-[var(--color-border)] p-2">Extension</th>
-              <th className="border-b border-[var(--color-border)] p-2">Role</th>
-              <th className="border-b border-[var(--color-border)] p-2">Last login</th>
+            <tr className="text-xs uppercase tracking-wide text-[var(--color-muted)]">
+              <th className="border-b border-[var(--color-border)] p-2">{t.common.name}</th>
+              <th className="border-b border-[var(--color-border)] p-2">{t.common.username}</th>
+              <th className="border-b border-[var(--color-border)] p-2">{t.common.extension}</th>
+              <th className="border-b border-[var(--color-border)] p-2">{t.common.role}</th>
+              <th className="border-b border-[var(--color-border)] p-2">{t.users.lastLogin}</th>
               <th className="border-b border-[var(--color-border)] p-2" />
             </tr>
           </thead>
@@ -117,11 +125,17 @@ export function UsersAdminPage() {
             {users.map((u) => (
               <tr key={u.id}>
                 <td className="border-b border-[var(--color-border)] p-2">{u.fullName}</td>
-                <td className="border-b border-[var(--color-border)] p-2">{u.username}</td>
-                <td className="border-b border-[var(--color-border)] p-2">{u.extension}</td>
-                <td className="border-b border-[var(--color-border)] p-2">{u.role}</td>
+                <td className="border-b border-[var(--color-border)] p-2" dir="ltr">
+                  {u.username}
+                </td>
+                <td className="border-b border-[var(--color-border)] p-2" dir="ltr">
+                  {u.extension}
+                </td>
                 <td className="border-b border-[var(--color-border)] p-2">
-                  {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : '—'}
+                  {u.role === 'admin' ? t.common.admin : t.common.agent}
+                </td>
+                <td className="border-b border-[var(--color-border)] p-2">
+                  {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString(locale) : '—'}
                 </td>
                 <td className="border-b border-[var(--color-border)] p-2">
                   <Button
@@ -131,11 +145,11 @@ export function UsersAdminPage() {
                     onClick={() =>
                       void api.bridge.users.delete(u.id).then(async () => {
                         await queryClient.invalidateQueries({ queryKey: ['app-users'] })
-                        showToast('Deleted', 'info')
+                        showToast(t.users.deleted, 'info')
                       })
                     }
                   >
-                    Delete
+                    {t.common.delete}
                   </Button>
                 </td>
               </tr>
