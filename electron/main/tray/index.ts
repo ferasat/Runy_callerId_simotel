@@ -27,13 +27,13 @@ export function createTray(opts: {
 }): Tray {
   if (tray) return tray
   tray = new Tray(trayIcon())
-  tray.setToolTip('Simotel Softphone')
+  tray.setToolTip('سیموتل سافت‌فون')
 
   const rebuild = (): void => {
     const active = opts.callService.getActive()
     const template: Electron.MenuItemConstructorOptions[] = [
       {
-        label: 'Show Softphone',
+        label: 'نمایش سافت‌فون',
         click: () => {
           const win = opts.getMainWindow()
           win?.show()
@@ -45,16 +45,16 @@ export function createTray(opts: {
 
     if (active) {
       template.push({
-        label: `Active: ${active.callerName ?? active.phoneNumber}`,
+        label: `فعال: ${active.callerName ?? active.phoneNumber}`,
         enabled: false
       })
       if (active.state === 'ringing' && active.direction === 'inbound') {
         template.push({
-          label: 'Answer',
+          label: 'پاسخ',
           click: () => opts.callService.answer()
         })
         template.push({
-          label: 'Reject',
+          label: 'رد',
           click: () => opts.callService.reject()
         })
       }
@@ -62,7 +62,7 @@ export function createTray(opts: {
     }
 
     template.push({
-      label: 'Quit',
+      label: 'خروج',
       click: () => {
         ;(app as unknown as { isQuitting?: boolean }).isQuitting = true
         app.quit()

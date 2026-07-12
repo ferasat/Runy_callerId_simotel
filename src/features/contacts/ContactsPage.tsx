@@ -4,9 +4,14 @@ import { v4 as uuid } from 'uuid'
 import { api } from '@/api/client/bridge'
 import { contactSchema } from '@/api/validation/schemas'
 import { useAppStore } from '@/stores/appStore'
+import { useI18n } from '@/i18n'
+import { Button } from '@/components/ui/button'
+import { Card, CardDescription, CardTitle } from '@/components/ui/card'
+import { Input, Label } from '@/components/ui/input'
 import type { Contact } from '@shared/types'
 
 export function ContactsPage() {
+  const { t } = useI18n()
   const contacts = useAppStore((s) => s.contacts)
   const setContacts = useAppStore((s) => s.setContacts)
   const searchQuery = useAppStore((s) => s.searchQuery)
@@ -24,7 +29,7 @@ export function ContactsPage() {
         c.name.toLowerCase().includes(q) ||
         (c.company ?? '').toLowerCase().includes(q) ||
         c.numbers.some((n) => n.number.includes(q)) ||
-        c.tags.some((t) => t.toLowerCase().includes(q))
+        c.tags.some((tag) => tag.toLowerCase().includes(q))
     )
   }, [contacts, searchQuery, tab])
 
@@ -41,7 +46,7 @@ export function ContactsPage() {
         : [{ label: 'mobile', number: '', primary: true }]
     })
     if (!parsed.success) {
-      showToast(parsed.error.errors[0]?.message ?? 'Invalid contact', 'error')
+      showToast(parsed.error.errors[0]?.message ?? t.contacts.invalid, 'error')
       return
     }
     const payload: Contact = {
@@ -62,26 +67,25 @@ export function ContactsPage() {
     await api.bridge.contacts.save(payload)
     await refresh()
     setEditing(null)
-    showToast('Contact saved', 'success')
+    showToast(t.contacts.saved, 'success')
   }
 
   return (
-    <div className="stack">
-      <div className="panel row" style={{ justifyContent: 'space-between' }}>
+    <div className="flex flex-col gap-4">
+      <Card className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1>Contacts</h1>
-          <p className="muted">Local contacts, favorites, tags, notes, and CSV import/export.</p>
+          <CardTitle>{t.contacts.title}</CardTitle>
+          <CardDescription>{t.contacts.subtitle}</CardDescription>
         </div>
-        <div className="row">
-          <button type="button" className="btn" onClick={() => void api.bridge.contacts.importCsv().then(refresh)}>
-            <Upload size={16} /> Import CSV
-          </button>
-          <button type="button" className="btn" onClick={() => void api.bridge.contacts.exportCsv()}>
-            <Download size={16} /> Export CSV
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => void api.bridge.contacts.importCsv().then(refresh)}>
+            <Upload size={16} /> {t.contacts.importCsv}
+          </Button>
+          <Button onClick={() => void api.bridge.contacts.exportCsv()}>
+            <Download size={16} /> {t.contacts.exportCsv}
+          </Button>
+          <Button
+            variant="primary"
             onClick={() =>
               setEditing({
                 name: '',
@@ -93,40 +97,52 @@ export function ContactsPage() {
               })
             }
           >
-            New Contact
-          </button>
+            {t.contacts.newContact}
+          </Button>
         </div>
-      </div>
+      </Card>
 
-      <div className="row">
-        {(['all', 'favorites', 'recent'] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            className={`btn${tab === t ? ' btn-primary' : ''}`}
-            onClick={() => setTab(t)}
+      <div className="flex gap-2">
+        {(
+          [
+            ['all', t.common.all],
+            ['favorites', t.common.favorites],
+            ['recent', t.common.recent]
+          ] as const
+        ).map(([key, label]) => (
+          <Button
+            key={key}
+            variant={tab === key ? 'primary' : 'default'}
+            onClick={() => setTab(key)}
           >
-            {t}
-          </button>
+            {label}
+          </Button>
         ))}
       </div>
 
       {editing && (
-        <div className="panel stack">
-          <h2>{editing.id ? 'Edit Contact' : 'New Contact'}</h2>
-          <div className="grid-2">
-            <label className="label">
-              Name
-              <input className="input" value={editing.name ?? ''} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
-            </label>
-            <label className="label">
-              Company
-              <input className="input" value={editing.company ?? ''} onChange={(e) => setEditing({ ...editing, company: e.target.value })} />
-            </label>
-            <label className="label">
-              Number
-              <input
-                className="input"
+        <Card className="flex flex-col gap-3">
+          <CardTitle>{editing.id ? t.contacts.editContact : t.contacts.newContact}</CardTitle>
+          <div className="grid gap-3 md:grid-cols-2">
+            <Label>
+              {t.common.name}
+              <Input
+                value={editing.name ?? ''}
+                onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+              />
+            </Label>
+            <Label>
+              {t.common.company}
+              <Input
+                value={editing.company ?? ''}
+                onChange={(e) => setEditing({ ...editing, company: e.target.value })}
+              />
+            </Label>
+            <Label>
+              {t.common.number}
+              <Input
+                dir="ltr"
+                className="text-left"
                 value={editing.numbers?.[0]?.number ?? ''}
                 onChange={(e) =>
                   setEditing({
@@ -135,73 +151,79 @@ export function ContactsPage() {
                   })
                 }
               />
-            </label>
-            <label className="label">
-              Email
-              <input className="input" value={editing.email ?? ''} onChange={(e) => setEditing({ ...editing, email: e.target.value })} />
-            </label>
-            <label className="label">
-              Address
-              <input className="input" value={editing.address ?? ''} onChange={(e) => setEditing({ ...editing, address: e.target.value })} />
-            </label>
-            <label className="label">
-              Tags (comma separated)
-              <input
-                className="input"
-                value={(editing.tags ?? []).join(', ')}
+            </Label>
+            <Label>
+              {t.common.email}
+              <Input
+                dir="ltr"
+                className="text-left"
+                value={editing.email ?? ''}
+                onChange={(e) => setEditing({ ...editing, email: e.target.value })}
+              />
+            </Label>
+            <Label>
+              {t.common.address}
+              <Input
+                value={editing.address ?? ''}
+                onChange={(e) => setEditing({ ...editing, address: e.target.value })}
+              />
+            </Label>
+            <Label>
+              {t.contacts.tagsHint}
+              <Input
+                value={(editing.tags ?? []).join('، ')}
                 onChange={(e) =>
                   setEditing({
                     ...editing,
                     tags: e.target.value
-                      .split(',')
-                      .map((t) => t.trim())
+                      .split(/[,،]/)
+                      .map((x) => x.trim())
                       .filter(Boolean)
                   })
                 }
               />
-            </label>
+            </Label>
           </div>
-          <label className="label">
-            Notes
+          <Label>
+            {t.common.notes}
             <textarea
-              className="input"
-              rows={3}
+              className="min-h-20 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm outline-none"
               value={editing.notes ?? ''}
               onChange={(e) => setEditing({ ...editing, notes: e.target.value })}
             />
-          </label>
-          <label className="row" style={{ gap: 8 }}>
+          </Label>
+          <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               checked={Boolean(editing.isFavorite)}
               onChange={(e) => setEditing({ ...editing, isFavorite: e.target.checked })}
             />
-            Favorite
+            {t.contacts.favorite}
           </label>
-          <div className="row">
-            <button type="button" className="btn btn-primary" onClick={() => void saveContact()}>
-              Save
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={() => setEditing(null)}>
-              Cancel
-            </button>
+          <div className="flex gap-2">
+            <Button variant="primary" onClick={() => void saveContact()}>
+              {t.common.save}
+            </Button>
+            <Button variant="ghost" onClick={() => setEditing(null)}>
+              {t.common.cancel}
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
-      <div className="panel">
+      <Card>
         {filtered.length === 0 ? (
-          <div className="empty">No contacts found</div>
+          <div className="py-12 text-center text-[var(--color-muted)]">{t.contacts.noContacts}</div>
         ) : (
-          <table className="table">
+          <table className="w-full border-collapse text-sm">
             <thead>
-              <tr>
-                <th />
-                <th>Name</th>
-                <th>Company</th>
-                <th>Number</th>
-                <th>Tags</th>
-                <th>Actions</th>
+              <tr className="text-xs uppercase tracking-wide text-[var(--color-muted)]">
+                <th className="border-b border-[var(--color-border)] p-2" />
+                <th className="border-b border-[var(--color-border)] p-2">{t.common.name}</th>
+                <th className="border-b border-[var(--color-border)] p-2">{t.common.company}</th>
+                <th className="border-b border-[var(--color-border)] p-2">{t.common.number}</th>
+                <th className="border-b border-[var(--color-border)] p-2">{t.common.tags}</th>
+                <th className="border-b border-[var(--color-border)] p-2">{t.common.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -209,37 +231,42 @@ export function ContactsPage() {
                 const number = c.numbers.find((n) => n.primary)?.number ?? c.numbers[0]?.number
                 return (
                   <tr key={c.id}>
-                    <td>{c.isFavorite ? <Star size={14} color="var(--warning)" /> : null}</td>
-                    <td>{c.name}</td>
-                    <td>{c.company ?? '—'}</td>
-                    <td>{number}</td>
-                    <td>{c.tags.join(', ') || '—'}</td>
-                    <td>
-                      <div className="row">
-                        <button
-                          type="button"
-                          className="btn btn-primary"
-                          title="Click to call"
-                          onClick={() => void api.bridge.call.originate(number)}
+                    <td className="border-b border-[var(--color-border)] p-2">
+                      {c.isFavorite ? <Star size={14} color="var(--color-warning)" /> : null}
+                    </td>
+                    <td className="border-b border-[var(--color-border)] p-2">{c.name}</td>
+                    <td className="border-b border-[var(--color-border)] p-2">
+                      {c.company ?? '—'}
+                    </td>
+                    <td className="border-b border-[var(--color-border)] p-2" dir="ltr">
+                      {number}
+                    </td>
+                    <td className="border-b border-[var(--color-border)] p-2">
+                      {c.tags.join('، ') || '—'}
+                    </td>
+                    <td className="border-b border-[var(--color-border)] p-2">
+                      <div className="flex gap-2">
+                        <Button
+                          variant="primary"
+                          size="icon"
                           disabled={!number}
+                          onClick={() => void api.bridge.call.originate(number!)}
                         >
                           <Phone size={14} />
-                        </button>
-                        <button type="button" className="btn" onClick={() => setEditing(c)}>
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-danger"
+                        </Button>
+                        <Button onClick={() => setEditing(c)}>{t.common.edit}</Button>
+                        <Button
+                          variant="danger"
+                          size="icon"
                           onClick={() =>
                             void api.bridge.contacts.delete(c.id).then(async () => {
                               await refresh()
-                              showToast('Deleted', 'info')
+                              showToast(t.contacts.deleted, 'info')
                             })
                           }
                         >
                           <Trash2 size={14} />
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -248,7 +275,7 @@ export function ContactsPage() {
             </tbody>
           </table>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

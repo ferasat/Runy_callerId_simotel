@@ -1,12 +1,12 @@
 import type { AppSettings } from '../types'
 
-export const APP_NAME = 'Simotel Softphone'
+export const APP_NAME = 'سیموتل سافت‌فون'
 export const APP_ID = 'com.runy.simotel-softphone'
 export const DEFAULT_API_PATH = 'api/v4'
 
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'light',
-  language: 'en',
+  language: 'fa',
   autoStart: false,
   startWithWindows: false,
   minimizeToTray: true,

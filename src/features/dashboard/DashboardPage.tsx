@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/input'
 import { useAppStore } from '@/stores/appStore'
+import { useI18n } from '@/i18n'
 import type { DashboardStats } from '@shared/types'
 
 function Stat({ label, value }: { label: string; value: string | number }) {
@@ -31,13 +32,14 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 }
 
 export function DashboardPage() {
+  const { t } = useI18n()
   const session = useAppStore((s) => s.session)
   const activeCall = useAppStore((s) => s.activeCall)
   const contacts = useAppStore((s) => s.contacts)
   const [tick, setTick] = useState(0)
 
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 10000)
+    const id = setInterval(() => setTick((n) => n + 1), 10000)
     return () => clearInterval(id)
   }, [])
 
@@ -52,9 +54,10 @@ export function DashboardPage() {
   return (
     <div className="flex flex-col gap-4">
       <Card>
-        <CardTitle>Dashboard</CardTitle>
+        <CardTitle>{t.dashboard.title}</CardTitle>
         <CardDescription>
-          Welcome{session ? `, ${session.name}` : ''}. Live CTI widgets refresh automatically.
+          {t.dashboard.welcome}
+          {session ? `، ${session.name}` : ''}. {t.dashboard.welcomeHint}
         </CardDescription>
       </Card>
 
@@ -66,24 +69,24 @@ export function DashboardPage() {
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat label="Current Calls" value={stats?.currentCalls ?? 0} />
-          <Stat label="Waiting Calls" value={stats?.waitingCalls ?? 0} />
-          <Stat label="Answered Today" value={stats?.answeredToday ?? 0} />
-          <Stat label="Missed Calls" value={stats?.missedCalls ?? 0} />
-          <Stat label="Abandoned" value={stats?.abandonedCalls ?? 0} />
-          <Stat label="Avg Talk Time" value={`${stats?.averageTalkTimeSec ?? 0}s`} />
-          <Stat label="Avg Wait" value={`${stats?.averageWaitingTimeSec ?? 0}s`} />
-          <Stat label="Longest Call" value={`${stats?.longestCallSec ?? 0}s`} />
-          <Stat label="Logged Agents" value={stats?.loggedAgents ?? 0} />
-          <Stat label="Busy Agents" value={stats?.busyAgents ?? 0} />
-          <Stat label="Available Agents" value={stats?.availableAgents ?? 0} />
-          <Stat label="Contacts" value={contacts.length} />
+          <Stat label={t.dashboard.currentCalls} value={stats?.currentCalls ?? 0} />
+          <Stat label={t.dashboard.waitingCalls} value={stats?.waitingCalls ?? 0} />
+          <Stat label={t.dashboard.answeredToday} value={stats?.answeredToday ?? 0} />
+          <Stat label={t.dashboard.missedCalls} value={stats?.missedCalls ?? 0} />
+          <Stat label={t.dashboard.abandoned} value={stats?.abandonedCalls ?? 0} />
+          <Stat label={t.dashboard.avgTalk} value={`${stats?.averageTalkTimeSec ?? 0}ث`} />
+          <Stat label={t.dashboard.avgWait} value={`${stats?.averageWaitingTimeSec ?? 0}ث`} />
+          <Stat label={t.dashboard.longestCall} value={`${stats?.longestCallSec ?? 0}ث`} />
+          <Stat label={t.dashboard.loggedAgents} value={stats?.loggedAgents ?? 0} />
+          <Stat label={t.dashboard.busyAgents} value={stats?.busyAgents ?? 0} />
+          <Stat label={t.dashboard.availableAgents} value={stats?.availableAgents ?? 0} />
+          <Stat label={t.dashboard.contacts} value={contacts.length} />
         </div>
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="h-80">
-          <CardTitle>Calls per Hour</CardTitle>
+          <CardTitle>{t.dashboard.callsPerHour}</CardTitle>
           <div className="mt-3 h-60">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={stats?.callsPerHour ?? []}>
@@ -109,7 +112,7 @@ export function DashboardPage() {
         </Card>
 
         <Card className="h-80">
-          <CardTitle>Queue Performance</CardTitle>
+          <CardTitle>{t.dashboard.queuePerformance}</CardTitle>
           <div className="mt-3 h-60">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats?.queuePerformance ?? []}>
@@ -130,14 +133,17 @@ export function DashboardPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <ClickToCall />
         <Card className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <CardTitle>Active Call</CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle>{t.dashboard.activeCall}</CardTitle>
             <Badge tone={stats?.connectionHealth === 'connected' ? 'ok' : 'warn'}>
-              {stats?.connectionHealth ?? 'unknown'} · server {stats?.serverStatus}
+              {stats?.connectionHealth ?? t.common.unknown} · {t.dashboard.server}{' '}
+              {stats?.serverStatus}
             </Badge>
           </div>
           {!activeCall && (
-            <div className="py-10 text-center text-[var(--color-muted)]">No active call</div>
+            <div className="py-10 text-center text-[var(--color-muted)]">
+              {t.dashboard.noActiveCall}
+            </div>
           )}
           {activeCall && (
             <>
@@ -156,14 +162,14 @@ export function DashboardPage() {
               </div>
               <div className="flex flex-wrap justify-center gap-2">
                 <Button variant="primary" onClick={() => void api.bridge.call.answer()}>
-                  <Phone size={16} /> Answer
+                  <Phone size={16} /> {t.call.answer}
                 </Button>
                 <Button variant="danger" onClick={() => void api.bridge.call.reject()}>
-                  Reject
+                  {t.call.reject}
                 </Button>
-                <Button onClick={() => void api.bridge.call.mute()}>Mute</Button>
-                <Button onClick={() => void api.bridge.call.hold()}>Hold</Button>
-                <Button onClick={() => void api.bridge.call.record()}>Record</Button>
+                <Button onClick={() => void api.bridge.call.mute()}>{t.call.mute}</Button>
+                <Button onClick={() => void api.bridge.call.hold()}>{t.call.hold}</Button>
+                <Button onClick={() => void api.bridge.call.record()}>{t.call.record}</Button>
               </div>
             </>
           )}

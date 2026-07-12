@@ -17,27 +17,25 @@ import { AgentStatusPicker } from '@/features/agent-status/AgentStatusPicker'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-
-const links = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/contacts', label: 'Contacts', icon: Users },
-  { to: '/queues', label: 'Queues', icon: ListOrdered },
-  { to: '/history', label: 'History', icon: History },
-  { to: '/recordings', label: 'Recordings', icon: Mic },
-  { to: '/search', label: 'Search', icon: Search },
-  { to: '/settings', label: 'Settings', icon: Settings }
-]
+import { useI18n } from '@/i18n'
 
 export function AppLayout() {
+  const { t } = useI18n()
   const location = useLocation()
   const searchQuery = useAppStore((s) => s.searchQuery)
   const setSearchQuery = useAppStore((s) => s.setSearchQuery)
   const session = useAppStore((s) => s.session)
   const activeCall = useAppStore((s) => s.activeCall)
 
-  const nav = [
-    ...links,
-    ...(session?.role === 'admin' ? [{ to: '/users', label: 'Users', icon: UserCog }] : [])
+  const links = [
+    { to: '/', label: t.nav.dashboard, icon: LayoutDashboard },
+    { to: '/contacts', label: t.nav.contacts, icon: Users },
+    { to: '/queues', label: t.nav.queues, icon: ListOrdered },
+    { to: '/history', label: t.nav.history, icon: History },
+    { to: '/recordings', label: t.nav.recordings, icon: Mic },
+    { to: '/search', label: t.nav.search, icon: Search },
+    { to: '/settings', label: t.nav.settings, icon: Settings },
+    ...(session?.role === 'admin' ? [{ to: '/users', label: t.nav.users, icon: UserCog }] : [])
   ]
 
   return (
@@ -45,15 +43,17 @@ export function AppLayout() {
       <aside className="flex flex-col gap-2 border-e border-[var(--color-border)] bg-gradient-to-b from-[rgb(18_26_43/0.95)] to-[rgb(11_18_32/0.98)] p-4 backdrop-blur">
         <div className="animate-fade-up px-3 pb-4">
           <div className="mb-2.5 grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-2)] font-bold text-[#041016] shadow-[0_8px_24px_rgb(45_212_160/0.25)]">
-            S
+            {t.brandShort}
           </div>
           <strong className="block font-[family-name:var(--font-display)] text-[1.15rem] tracking-tight max-[960px]:hidden">
-            Simotel Softphone
+            {t.appName}
           </strong>
-          <span className="text-xs text-[var(--color-muted)] max-[960px]:hidden">Desktop CTI</span>
+          <span className="text-xs text-[var(--color-muted)] max-[960px]:hidden">
+            {t.appTagline}
+          </span>
         </div>
         <nav className="flex flex-col gap-1">
-          {nav.map(({ to, label, icon: Icon }) => (
+          {links.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
@@ -74,7 +74,7 @@ export function AppLayout() {
         <div className="mt-auto flex flex-col gap-3">
           {activeCall && (
             <Card className="p-3">
-              <div className="text-xs text-[var(--color-muted)]">Active call</div>
+              <div className="text-xs text-[var(--color-muted)]">{t.activeCallSidebar}</div>
               <div className="mt-1.5 flex items-center gap-2 text-sm font-semibold">
                 <Phone size={16} />
                 {activeCall.callerName ?? activeCall.phoneNumber}
@@ -88,7 +88,7 @@ export function AppLayout() {
         <header className="flex items-center justify-between gap-4 border-b border-[var(--color-border)] bg-[rgb(18_26_43/0.55)] px-5 py-3.5 backdrop-blur">
           <Input
             className="max-w-md"
-            placeholder="Search number, name, company, extension, queue…"
+            placeholder={t.search.topPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -96,13 +96,14 @@ export function AppLayout() {
             <ConnectionBadge />
             {session && (
               <span className="rounded-full bg-[rgb(148_163_184/0.12)] px-2.5 py-1 text-xs text-[var(--color-muted)]">
-                {session.role} · Ext {session.extension}
+                {session.role === 'admin' ? t.common.admin : t.common.agent} · {t.ext}{' '}
+                {session.extension}
               </span>
             )}
             <span className="text-sm text-[var(--color-muted)]">
-              {nav.find((l) =>
+              {links.find((l) =>
                 l.to === '/' ? location.pathname === '/' : location.pathname.startsWith(l.to)
-              )?.label ?? 'Simotel'}
+              )?.label ?? t.appName}
             </span>
           </div>
         </header>

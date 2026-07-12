@@ -1,8 +1,8 @@
 @import 'tailwindcss';
 
 @theme {
-  --font-sans: 'Segoe UI Variable Text', 'Segoe UI', Tahoma, sans-serif;
-  --font-display: 'Segoe UI Variable Display', 'Segoe UI', Tahoma, sans-serif;
+  --font-sans: 'Vazirmatn', 'Tahoma', 'Segoe UI', sans-serif;
+  --font-display: 'Vazirmatn', 'Tahoma', 'Segoe UI', sans-serif;
   --color-bg: #0b1220;
   --color-panel: #121a2b;
   --color-elevated: #1a2438;
@@ -14,6 +14,15 @@
   --color-danger: #f87171;
   --color-warning: #fbbf24;
   --radius-xl: 14px;
+}
+
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn[wght].woff2')
+    format('woff2');
 }
 
 :root {
@@ -46,6 +55,16 @@ body,
   background:
     radial-gradient(1200px 600px at 10% -10%, rgb(45 212 160 / 0.12), transparent 50%),
     radial-gradient(900px 500px at 100% 0%, rgb(56 189 248 / 0.1), transparent 45%), var(--color-bg);
+}
+
+html[dir='rtl'] body,
+body.rtl {
+  text-align: right;
+}
+
+html[dir='rtl'] table th,
+html[dir='rtl'] table td {
+  text-align: right;
 }
 
 @keyframes fade-up {

@@ -7,6 +7,7 @@ import { useAppStore } from '@/stores/appStore'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { Input, Label, Select } from '@/components/ui/input'
+import { useI18n } from '@/i18n'
 import type { ApiAuthMode, ServerConfig } from '@shared/types'
 
 const serverFormSchema = z.object({
@@ -33,6 +34,7 @@ type ServerForm = z.infer<typeof serverFormSchema>
 type LoginForm = z.infer<typeof loginFormSchema>
 
 export function LoginPage() {
+  const { t } = useI18n()
   const servers = useAppStore((s) => s.servers)
   const setServers = useAppStore((s) => s.setServers)
   const setSession = useAppStore((s) => s.setSession)
@@ -69,11 +71,11 @@ export function LoginPage() {
 
   async function saveServer(values: ServerForm): Promise<void> {
     if ((values.apiAuth === 'token' || values.apiAuth === 'both') && !values.apiKey) {
-      showToast('API key required for token/both auth', 'error')
+      showToast(t.login.apiKey, 'error')
       return
     }
     if ((values.apiAuth === 'basic' || values.apiAuth === 'both') && !values.username) {
-      showToast('Username required for basic/both auth', 'error')
+      showToast(t.login.apiUsername, 'error')
       return
     }
     const server: ServerConfig = {
@@ -96,9 +98,9 @@ export function LoginPage() {
       const saved = await api.bridge.servers.save(server)
       setServers(await api.bridge.servers.list())
       loginForm.setValue('serverId', saved.id)
-      showToast('Server saved & healthy', 'success')
+      showToast(t.login.saved, 'success')
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Server test failed', 'error')
+      showToast(err instanceof Error ? err.message : t.login.testFailed, 'error')
     }
   }
 
@@ -108,109 +110,103 @@ export function LoginPage() {
       setUser(result.user)
       setSession(result.session)
       setConnection(result.connection)
-      showToast('Connected to Simotel', 'success')
+      showToast(t.login.connected, 'success')
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Login failed', 'error')
+      showToast(err instanceof Error ? err.message : t.login.failed, 'error')
     }
   }
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4 p-8">
       <Card>
-        <CardTitle>Simotel Softphone</CardTitle>
-        <CardDescription>
-          Enterprise CTI client — auth modes: basic, token, or both (official Simotel v4). Default
-          admin user: <code>admin / admin</code>
-        </CardDescription>
+        <CardTitle>{t.login.title}</CardTitle>
+        <CardDescription>{t.login.subtitle}</CardDescription>
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="flex flex-col gap-3">
-          <CardTitle>Server</CardTitle>
+          <CardTitle>{t.login.serverSection}</CardTitle>
           <form
             className="flex flex-col gap-3"
             onSubmit={serverForm.handleSubmit((v) => void saveServer(v))}
           >
             <Label>
-              Name
+              {t.common.name}
               <Input {...serverForm.register('name')} />
             </Label>
             <Label>
-              Base URL
+              {t.login.baseUrl}
               <Input placeholder="https://pbx.example.com" {...serverForm.register('baseUrl')} />
             </Label>
             <Label>
-              API Path
+              {t.login.apiPath}
               <Input {...serverForm.register('apiPath')} />
             </Label>
             <Label>
-              Auth mode
+              {t.login.authMode}
               <Select {...serverForm.register('apiAuth')}>
-                <option value="both">both (Basic + X-APIKEY)</option>
-                <option value="token">token (X-APIKEY)</option>
-                <option value="basic">basic</option>
+                <option value="both">{t.login.authBoth}</option>
+                <option value="token">{t.login.authToken}</option>
+                <option value="basic">{t.login.authBasic}</option>
               </Select>
             </Label>
             <Label>
-              API Key
+              {t.login.apiKey}
               <Input type="password" {...serverForm.register('apiKey')} />
             </Label>
             <Label>
-              API Username
+              {t.login.apiUsername}
               <Input {...serverForm.register('username')} />
             </Label>
             <Label>
-              API Password
+              {t.login.apiPassword}
               <Input type="password" {...serverForm.register('password')} />
             </Label>
             <Label>
-              Timeout (ms)
+              {t.login.timeout}
               <Input type="number" {...serverForm.register('timeoutMs')} />
             </Label>
             <Button type="submit" variant="primary">
-              Test & Save Server
+              {t.login.testSave}
             </Button>
           </form>
         </Card>
 
         <Card className="flex flex-col gap-3">
-          <CardTitle>Agent Login</CardTitle>
+          <CardTitle>{t.login.loginSection}</CardTitle>
           <form
             className="flex flex-col gap-3"
             onSubmit={loginForm.handleSubmit((v) => void login(v))}
           >
             <Label>
-              Server
+              {t.common.server}
               <Select {...loginForm.register('serverId')}>
-                <option value="">Select…</option>
+                <option value="">{t.login.selectServer}</option>
                 {servers.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.name} ({s.health ?? 'unknown'})
+                    {s.name} ({s.health ?? t.common.unknown})
                   </option>
                 ))}
               </Select>
             </Label>
             <Label>
-              Softphone username
+              {t.login.softUsername}
               <Input {...loginForm.register('username')} />
             </Label>
             <Label>
-              Softphone password
+              {t.login.softPassword}
               <Input type="password" {...loginForm.register('password')} />
             </Label>
             <Label>
-              Extension override
-              <Input
-                {...loginForm.register('extension')}
-                placeholder="Uses user extension if empty"
-              />
+              {t.login.extensionOverride}
+              <Input {...loginForm.register('extension')} placeholder={t.login.extensionHint} />
             </Label>
             <Label>
-              Display name
+              {t.login.displayName}
               <Input {...loginForm.register('name')} />
             </Label>
             <Button type="submit" variant="primary">
-              Login
+              {t.login.loginBtn}
             </Button>
           </form>
         </Card>

@@ -15,6 +15,7 @@ import { SearchPage } from '@/features/search/SearchPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { UsersAdminPage } from '@/features/users/UsersAdminPage'
 import { useAppStore } from '@/stores/appStore'
+import { applyDocumentDirection } from '@/i18n'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +39,8 @@ function useBootstrap(): boolean {
     const unsubs: Array<() => void> = []
     ;(async () => {
       if (!api.isAvailable()) {
+        applyDocumentDirection('fa')
+        document.title = 'سیموتل سافت‌فون'
         setReady(true)
         return
       }
@@ -50,6 +53,13 @@ function useBootstrap(): boolean {
       setSettings(settings)
       setServers(servers)
       setContacts(contacts)
+
+      // Softphone ships Persian/RTL by default for this product.
+      let effectiveSettings = settings
+      if (settings.language !== 'fa') {
+        effectiveSettings = await api.bridge.settings.set({ language: 'fa' })
+        setSettings(effectiveSettings)
+      }
       if (auth.session) {
         setSession(auth.session)
         setUser(await api.bridge.agent.getStatus())
@@ -57,12 +67,14 @@ function useBootstrap(): boolean {
       setConnection(auth.connection)
 
       const theme =
-        settings.theme === 'system'
+        effectiveSettings.theme === 'system'
           ? window.matchMedia('(prefers-color-scheme: dark)').matches
             ? 'dark'
             : 'light'
-          : settings.theme
+          : effectiveSettings.theme
       document.documentElement.setAttribute('data-theme', theme)
+      applyDocumentDirection(effectiveSettings.language)
+      document.title = effectiveSettings.language === 'fa' ? 'سیموتل سافت‌فون' : 'Simotel Softphone'
 
       unsubs.push(
         api.bridge.call.onActiveChanged(setActiveCall),

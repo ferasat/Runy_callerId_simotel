@@ -1,22 +1,41 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client/bridge'
 import { useAppStore } from '@/stores/appStore'
+import { useI18n } from '@/i18n'
+import { Button } from '@/components/ui/button'
+import { Card, CardDescription, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import type { CallHistoryEntry, Contact, QueueInfo } from '@shared/types'
 
-type SearchTab = 'all' | 'number' | 'name' | 'company' | 'extension' | 'queue' | 'agent' | 'history' | 'contacts'
+type SearchTab =
+  'all' | 'number' | 'name' | 'company' | 'extension' | 'queue' | 'agent' | 'history' | 'contacts'
 
 export function SearchPage() {
+  const { t, lang } = useI18n()
   const searchQuery = useAppStore((s) => s.searchQuery)
   const setSearchQuery = useAppStore((s) => s.setSearchQuery)
   const contacts = useAppStore((s) => s.contacts)
   const [tab, setTab] = useState<SearchTab>('all')
-  const [history, setHistory] = useState<CallHistoryEntry[]>([])
-  const [queues, setQueues] = useState<QueueInfo[]>([])
 
-  useEffect(() => {
-    void api.bridge.call.history({ start: 0, count: 100, search: searchQuery }).then((r) => setHistory(r.items ?? []))
-    void api.bridge.queues.list().then((q) => setQueues(q as QueueInfo[])).catch(() => setQueues([]))
-  }, [searchQuery])
+  const { data: history = [] } = useQuery({
+    queryKey: ['search-history', searchQuery],
+    queryFn: async () => {
+      const r = await api.bridge.call.history({ start: 0, count: 100, search: searchQuery })
+      return (r.items ?? []) as CallHistoryEntry[]
+    }
+  })
+
+  const { data: queues = [] } = useQuery({
+    queryKey: ['search-queues'],
+    queryFn: async () => {
+      try {
+        return (await api.bridge.queues.list()) as QueueInfo[]
+      } catch {
+        return [] as QueueInfo[]
+      }
+    }
+  })
 
   const q = searchQuery.trim().toLowerCase()
 
@@ -36,53 +55,61 @@ export function SearchPage() {
     return queues.filter((item) => item.name.toLowerCase().includes(q) || item.number.includes(q))
   }, [queues, q, tab])
 
+  const tabs: SearchTab[] = [
+    'all',
+    'number',
+    'name',
+    'company',
+    'extension',
+    'queue',
+    'agent',
+    'history',
+    'contacts'
+  ]
+  const locale = lang === 'fa' ? 'fa-IR' : undefined
+
   return (
-    <div className="stack">
-      <div className="panel">
-        <h1>Search</h1>
-        <p className="muted">Instant search across numbers, names, companies, extensions, queues, agents, history, and contacts.</p>
-        <input
-          className="input"
-          style={{ marginTop: 12 }}
+    <div className="flex flex-col gap-4">
+      <Card>
+        <CardTitle>{t.search.title}</CardTitle>
+        <CardDescription>{t.search.subtitle}</CardDescription>
+        <Input
+          className="mt-3"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Type to search…"
+          placeholder={t.search.placeholder}
           autoFocus
         />
-        <div className="row" style={{ marginTop: 12, flexWrap: 'wrap' }}>
-          {(
-            [
-              'all',
-              'number',
-              'name',
-              'company',
-              'extension',
-              'queue',
-              'agent',
-              'history',
-              'contacts'
-            ] as SearchTab[]
-          ).map((t) => (
-            <button key={t} type="button" className={`btn${tab === t ? ' btn-primary' : ''}`} onClick={() => setTab(t)}>
-              {t}
-            </button>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {tabs.map((key) => (
+            <Button
+              key={key}
+              variant={tab === key ? 'primary' : 'default'}
+              onClick={() => setTab(key)}
+            >
+              {t.search.tabs[key]}
+            </Button>
           ))}
         </div>
-      </div>
+      </Card>
 
-      {(tab === 'all' || tab === 'contacts' || tab === 'name' || tab === 'company' || tab === 'number') && (
-        <div className="panel">
-          <h2>Contacts</h2>
+      {(tab === 'all' ||
+        tab === 'contacts' ||
+        tab === 'name' ||
+        tab === 'company' ||
+        tab === 'number') && (
+        <Card>
+          <CardTitle>{t.nav.contacts}</CardTitle>
           {contactHits.length === 0 ? (
-            <div className="empty">No contact matches</div>
+            <div className="py-8 text-center text-[var(--color-muted)]">{t.search.noContacts}</div>
           ) : (
-            <table className="table">
+            <table className="mt-3 w-full border-collapse text-sm">
               <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Company</th>
-                  <th>Number</th>
-                  <th />
+                <tr className="text-xs text-[var(--color-muted)]">
+                  <th className="border-b border-[var(--color-border)] p-2">{t.common.name}</th>
+                  <th className="border-b border-[var(--color-border)] p-2">{t.common.company}</th>
+                  <th className="border-b border-[var(--color-border)] p-2">{t.common.number}</th>
+                  <th className="border-b border-[var(--color-border)] p-2" />
                 </tr>
               </thead>
               <tbody>
@@ -90,18 +117,21 @@ export function SearchPage() {
                   const number = c.numbers[0]?.number
                   return (
                     <tr key={c.id}>
-                      <td>{c.name}</td>
-                      <td>{c.company ?? '—'}</td>
-                      <td>{number}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className="btn btn-primary"
+                      <td className="border-b border-[var(--color-border)] p-2">{c.name}</td>
+                      <td className="border-b border-[var(--color-border)] p-2">
+                        {c.company ?? '—'}
+                      </td>
+                      <td className="border-b border-[var(--color-border)] p-2" dir="ltr">
+                        {number}
+                      </td>
+                      <td className="border-b border-[var(--color-border)] p-2">
+                        <Button
+                          variant="primary"
                           disabled={!number}
                           onClick={() => void api.bridge.call.originate(number!)}
                         >
-                          Call
-                        </button>
+                          {t.common.call}
+                        </Button>
                       </td>
                     </tr>
                   )
@@ -109,67 +139,83 @@ export function SearchPage() {
               </tbody>
             </table>
           )}
-        </div>
+        </Card>
       )}
 
-      {(tab === 'all' || tab === 'history' || tab === 'agent' || tab === 'extension' || tab === 'number') && (
-        <div className="panel">
-          <h2>History</h2>
+      {(tab === 'all' ||
+        tab === 'history' ||
+        tab === 'agent' ||
+        tab === 'extension' ||
+        tab === 'number') && (
+        <Card>
+          <CardTitle>{t.nav.history}</CardTitle>
           {historyHits.length === 0 ? (
-            <div className="empty">No history matches</div>
+            <div className="py-8 text-center text-[var(--color-muted)]">{t.search.noHistory}</div>
           ) : (
-            <table className="table">
+            <table className="mt-3 w-full border-collapse text-sm">
               <thead>
-                <tr>
-                  <th>When</th>
-                  <th>Number</th>
-                  <th>Name</th>
-                  <th>Agent</th>
-                  <th>Queue</th>
+                <tr className="text-xs text-[var(--color-muted)]">
+                  <th className="border-b border-[var(--color-border)] p-2">{t.common.when}</th>
+                  <th className="border-b border-[var(--color-border)] p-2">{t.common.number}</th>
+                  <th className="border-b border-[var(--color-border)] p-2">{t.common.name}</th>
+                  <th className="border-b border-[var(--color-border)] p-2">{t.history.agent}</th>
+                  <th className="border-b border-[var(--color-border)] p-2">{t.history.queue}</th>
                 </tr>
               </thead>
               <tbody>
                 {historyHits.map((h) => (
                   <tr key={h.id}>
-                    <td>{new Date(h.startedAt).toLocaleString()}</td>
-                    <td>{h.phoneNumber}</td>
-                    <td>{h.contactName ?? '—'}</td>
-                    <td>{h.agent ?? h.extension ?? '—'}</td>
-                    <td>{h.queue ?? '—'}</td>
+                    <td className="border-b border-[var(--color-border)] p-2">
+                      {new Date(h.startedAt).toLocaleString(locale)}
+                    </td>
+                    <td className="border-b border-[var(--color-border)] p-2" dir="ltr">
+                      {h.phoneNumber}
+                    </td>
+                    <td className="border-b border-[var(--color-border)] p-2">
+                      {h.contactName ?? '—'}
+                    </td>
+                    <td className="border-b border-[var(--color-border)] p-2">
+                      {h.agent ?? h.extension ?? '—'}
+                    </td>
+                    <td className="border-b border-[var(--color-border)] p-2">{h.queue ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
-        </div>
+        </Card>
       )}
 
       {(tab === 'all' || tab === 'queue') && (
-        <div className="panel">
-          <h2>Queues</h2>
+        <Card>
+          <CardTitle>{t.nav.queues}</CardTitle>
           {queueHits.length === 0 ? (
-            <div className="empty">No queue matches</div>
+            <div className="py-8 text-center text-[var(--color-muted)]">{t.search.noQueues}</div>
           ) : (
-            <table className="table">
+            <table className="mt-3 w-full border-collapse text-sm">
               <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Number</th>
-                  <th>Waiting</th>
+                <tr className="text-xs text-[var(--color-muted)]">
+                  <th className="border-b border-[var(--color-border)] p-2">{t.common.name}</th>
+                  <th className="border-b border-[var(--color-border)] p-2">{t.common.number}</th>
+                  <th className="border-b border-[var(--color-border)] p-2">{t.search.waiting}</th>
                 </tr>
               </thead>
               <tbody>
                 {queueHits.map((item) => (
                   <tr key={item.id}>
-                    <td>{item.name}</td>
-                    <td>{item.number}</td>
-                    <td>{item.waitingCallers}</td>
+                    <td className="border-b border-[var(--color-border)] p-2">{item.name}</td>
+                    <td className="border-b border-[var(--color-border)] p-2" dir="ltr">
+                      {item.number}
+                    </td>
+                    <td className="border-b border-[var(--color-border)] p-2">
+                      {item.waitingCallers}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
-        </div>
+        </Card>
       )}
     </div>
   )
@@ -183,7 +229,7 @@ function matchContact(c: Contact, q: string, tab: SearchTab): boolean {
     c.name.toLowerCase().includes(q) ||
     (c.company ?? '').toLowerCase().includes(q) ||
     c.numbers.some((n) => n.number.includes(q)) ||
-    c.tags.some((t) => t.toLowerCase().includes(q))
+    c.tags.some((tag) => tag.toLowerCase().includes(q))
   )
 }
 
@@ -191,7 +237,8 @@ function matchHistory(h: CallHistoryEntry, q: string, tab: SearchTab): boolean {
   if (!q) return true
   if (tab === 'number') return h.phoneNumber.includes(q)
   if (tab === 'extension') return (h.extension ?? '').includes(q)
-  if (tab === 'agent') return (h.agent ?? '').toLowerCase().includes(q) || (h.extension ?? '').includes(q)
+  if (tab === 'agent')
+    return (h.agent ?? '').toLowerCase().includes(q) || (h.extension ?? '').includes(q)
   if (tab === 'name') return (h.contactName ?? '').toLowerCase().includes(q)
   return (
     h.phoneNumber.includes(q) ||
